@@ -1,0 +1,2064 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laporan Keberlanjutan ESG — Versi HTML Mandiri (LocalStorage + Excel)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #F8F8F6;
+      --surface: #FFFFFF;
+      --surface-muted: #F4F4F1;
+      --ink: #141816;
+      --ink-muted: #57534E;
+      --border: #E7E5E4;
+      --emerald: #14532D;
+      --emerald-hover: #166534;
+      --emerald-soft: #ECFDF5;
+      --amber: #B45309;
+      --amber-soft: #FFFBEB;
+      --danger: #B91C1C;
+      --danger-soft: #FEF2F2;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-serif: 'Fraunces', Georgia, serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 264px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 30;
+    }
+    .sidebar-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand {
+      font-family: var(--font-serif);
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    .profile-btn {
+      width: 100%;
+      text-align: left;
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .profile-btn:hover { background: #ECECE8; }
+    .profile-label { font-size: 10px; color: var(--ink-muted); font-weight: 600; text-transform: uppercase; }
+    .profile-name { font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+
+    .nav-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .nav-item {
+      border: none;
+      background: transparent;
+      text-align: left;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #44403C;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+    }
+    .nav-item:hover { background: var(--surface-muted); color: var(--ink); }
+    .nav-item.active { background: var(--emerald); color: #FFFFFF; font-weight: 600; }
+
+    .sidebar-foot {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Main Workspace */
+    .main-wrap {
+      flex: 1;
+      margin-left: 264px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .topbar-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .year-switch {
+      display: inline-flex;
+      background: #F1F1EE;
+      padding: 3px;
+      border-radius: 8px;
+      gap: 2px;
+    }
+    .year-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .year-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+    .content {
+      max-width: 1140px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--emerald); color: #FFFFFF; }
+    .btn-primary:hover { background: var(--emerald-hover); }
+    .btn-secondary { background: var(--surface); border-color: #D6D3D1; color: var(--ink); }
+    .btn-secondary:hover { background: var(--surface-muted); }
+    .btn-soft { background: #F1F1EE; color: var(--ink); }
+    .btn-soft:hover { background: #E5E5E0; }
+    .btn-danger { background: var(--danger-soft); color: var(--danger); border-color: #FECACA; }
+    .btn-sm { padding: 5px 9px; font-size: 11px; }
+
+    /* Typography & Cards */
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--emerald);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+    }
+    .subtitle { font-size: 13px; color: var(--ink-muted); margin: 6px 0 0 0; max-width: 720px; }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .kpi-label { font-size: 11.5px; color: var(--ink-muted); font-weight: 500; }
+    .kpi-val {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      margin: 6px 0 4px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-sub { font-size: 11.5px; color: var(--ink-muted); }
+    .tone-positive { color: var(--emerald); }
+    .tone-warning { color: var(--amber); }
+
+    /* Table */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .table-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th {
+      background: #FAFAF8;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #F1F1EE;
+      vertical-align: middle;
+    }
+    tr:hover td { background: #FAFAF9; }
+    .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+    .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* Inputs */
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 11.5px; font-weight: 600; color: #44403C; margin-bottom: 4px; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #D6D3D1;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      background: #FFFFFF;
+    }
+    .inline-num {
+      width: 110px;
+      padding: 5px 8px;
+      border: 1px solid #D6D3D1;
+      border-radius: 6px;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 24, 22, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 60;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border-radius: 14px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.16);
+    }
+    .modal-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+    }
+    .modal-body { padding: 18px 20px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+    .banner {
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      border: 1px solid;
+    }
+    .banner-ok { background: var(--emerald-soft); border-color: #A7F3D0; color: var(--emerald); }
+    .banner-warn { background: var(--amber-soft); border-color: #FDE68A; color: var(--amber); }
+
+    .mobile-menu-btn { display: none; }
+
+    @media (max-width: 960px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.2s ease; }
+      .sidebar.open { transform: translateX(0); }
+      .main-wrap { margin-left: 0; }
+      .mobile-menu-btn { display: inline-flex; }
+      .content { padding: 18px; }
+    }
+
+    @media print {
+      .sidebar, .topbar, .no-print { display: none !important; }
+      .main-wrap { margin-left: 0; }
+      body { background: #FFFFFF; }
+      .card, .table-wrap { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-head">
+        <div class="brand">SustainaLedger HTML</div>
+        <button type="button" class="profile-btn" onclick="openProfileModal()">
+          <div>
+            <div class="profile-label">Profil Aktif (LocalStorage)</div>
+            <div class="profile-name" id="sidebarProfileName">-</div>
+          </div>
+          <span style="font-size:12px;color:#57534E;">⇄</span>
+        </button>
+      </div>
+      <nav class="nav-list" id="navList"></nav>
+      <div class="sidebar-foot">
+        <button type="button" class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportActiveToExcel()">
+          Simpan ke Excel (.xlsx)
+        </button>
+        <label class="btn btn-secondary" style="width:100%;justify-content:center;cursor:pointer;">
+          Muat dari Excel (.xlsx)
+          <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelImport(event)" />
+        </label>
+        <button type="button" class="btn btn-soft" style="width:100%;justify-content:center;" onclick="resetAllData()">
+          Reset Data Contoh
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-wrap">
+      <header class="topbar">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button type="button" class="btn btn-secondary btn-sm mobile-menu-btn" onclick="toggleSidebar()">Menu</button>
+          <span class="topbar-title" id="topbarSectionTitle">Ringkasan Eksekutif</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="year-switch" id="yearSwitch"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="exportActiveToExcel()">Ekspor Excel</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Cetak / PDF</button>
+        </div>
+      </header>
+
+      <main class="content" id="mainContent"></main>
+    </div>
+  </div>
+
+  <!-- Dynamic Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this) closeModal()">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong id="modalTitle" style="font-family:var(--font-serif);font-size:17px;">Form Data</strong>
+        <button type="button" class="btn btn-soft btn-sm" onclick="closeModal()">Tutup</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'sustainaledger_html_profiles_v1';
+    const ACTIVE_KEY = 'sustainaledger_html_active_v1';
+    const YEARS = [2023, 2024, 2025];
+
+    const NAV_ITEMS = [
+      { id: 'overview', label: 'Ringkasan Eksekutif' },
+      { id: 'csr', label: '01. CSR & Komunitas' },
+      { id: 'k3', label: '02. K3 & Kalkulator TSIR' },
+      { id: 'pelatihan', label: '03. Pelatihan Karyawan' },
+      { id: 'sdm', label: '04. Kinerja Sosial & SDM' },
+      { id: 'energi', label: '05. Konsumsi Energi (GJ)' },
+      { id: 'lingkungan', label: '06. Lingkungan & Limbah' },
+      { id: 'pemasaran', label: '07. Pemasaran (DN & LN)' },
+      { id: 'supply', label: '08. Rantai Pasok' },
+      { id: 'sertifikasi', label: '09. Sertifikasi & Award' },
+      { id: 'asosiasi', label: '10. Keanggotaan Asosiasi' },
+      { id: 'excel', label: '11. LocalStorage & Excel' },
+    ];
+
+    let activeSection = 'overview';
+    let selectedYear = 2025;
+    let statusBanner = null;
+
+    function escapeHtml(val) {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fmtNum(val, dec = 0) {
+      return Number(val || 0).toLocaleString('id-ID', {
+        minimumFractionDigits: dec,
+        maximumFractionDigits: dec,
+      });
+    }
+
+    function fmtIDR(val) {
+      const n = Number(val || 0);
+      if (n >= 1e9) return 'Rp ' + (n / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' M';
+      if (n >= 1e6) return 'Rp ' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' Jt';
+      return 'Rp ' + fmtNum(n);
+    }
+
+    function uid(prefix) {
+      return prefix + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    }
+
+    function createInitialDataset(namaPerusahaan = 'PT Nusantara Lestari Industri Tbk', sektor = 'Manufaktur & Material Terpadu', lokasi = 'Jawa Barat & Kalimantan Timur') {
+      return {
+        company: {
+          namaPerusahaan,
+          sektorUsaha: sektor,
+          lokasiOperasional: lokasi,
+          standarAcuan: 'POJK No. 51/POJK.03/2017 · GRI Standards 2021',
+          ringkasanDireksi: 'Komitmen dekarbonisasi operasional, keselamatan kerja Zero LTI, penguatan rantai pasok lokal, dan tata kelola lingkungan berstandar ISO.',
+          volumeProduksiTon: { 2023: 410000, 2024: 435000, 2025: 462000 },
+        },
+        csrPrograms: [
+          { id: 'csr-1', year: 2025, namaProgram: 'Beasiswa Vokasi & Digitalisasi Sekolah Ring-1', pilar: 'Pendidikan', lokasi: 'Karawang', anggaranRp: 2450000000, realisasiRp: 2420000000, penerimaManfaat: 420, satuanPenerima: 'Pelajar & Guru', status: 'Selesai' },
+          { id: 'csr-2', year: 2025, namaProgram: 'Klinik Posyandu & Sanitasi Air Bersih Desa', pilar: 'Kesehatan', lokasi: 'Subang', anggaranRp: 1750000000, realisasiRp: 1710000000, penerimaManfaat: 1850, satuanPenerima: 'Warga', status: 'Selesai' },
+          { id: 'csr-3', year: 2025, namaProgram: 'Inkubasi UMKM Daur Ulang & Agroforestry', pilar: 'Ekonomi & UMKM', lokasi: 'Balikpapan', anggaranRp: 2800000000, realisasiRp: 2740000000, penerimaManfaat: 88, satuanPenerima: 'UMKM', status: 'Berjalan' },
+          { id: 'csr-4', year: 2024, namaProgram: 'Rehabilitasi Mangrove Pesisir Utara', pilar: 'Lingkungan', lokasi: 'Bekasi', anggaranRp: 1950000000, realisasiRp: 1920000000, penerimaManfaat: 35000, satuanPenerima: 'Bibit', status: 'Selesai' },
+          { id: 'csr-5', year: 2023, namaProgram: 'Pusat Pelatihan Pemuda & Infrastruktur Desa', pilar: 'Sosial & Infrastruktur', lokasi: 'Karawang', anggaranRp: 1500000000, realisasiRp: 1475000000, penerimaManfaat: 620, satuanPenerima: 'Warga', status: 'Selesai' },
+        ],
+        k3Summaries: {
+          2023: { jamKerjaSelamat: 3680000, jamKerjaZeroAccidentKumulatif: 3680000, jumlahTenagaKerja: 1520, basisPerhitungan: 200000, nearMiss: 14, firstAid: 6, medicalTreatment: 2, restrictedWork: 1, lti: 1, fatality: 0, hariHilang: 12, catatanZeroAccident: '1 LTI minor pada awal 2023; periode aman dimulai Q2 2023.' },
+          2024: { jamKerjaSelamat: 3890000, jamKerjaZeroAccidentKumulatif: 6420000, jumlahTenagaKerja: 1610, basisPerhitungan: 200000, nearMiss: 11, firstAid: 4, medicalTreatment: 1, restrictedWork: 0, lti: 0, fatality: 0, hariHilang: 0, catatanZeroAccident: 'Zero LTI & Zero Fatality sepanjang 2024.' },
+          2025: { jamKerjaSelamat: 4120000, jamKerjaZeroAccidentKumulatif: 10540000, jumlahTenagaKerja: 1695, basisPerhitungan: 200000, nearMiss: 8, firstAid: 3, medicalTreatment: 1, restrictedWork: 0, lti: 0, fatality: 0, hariHilang: 0, catatanZeroAccident: 'Melampaui 10 juta jam kerja selamat tanpa kecelakaan hilang hari kerja.' },
+        },
+        k3Incidents: [
+          { id: 'inc-1', year: 2025, tanggal: '2025-04-12', kategori: 'Medical Treatment', unitKerja: 'Unit Pemeliharaan Mekanik', deskripsi: 'Luka gores ringan pada lengan saat penggantian seal pompa.', hariHilang: 0, tindakanPerbaikan: 'Wajib sarung tangan level-5 & toolbox meeting ulang.' },
+          { id: 'inc-2', year: 2024, tanggal: '2024-09-05', kategori: 'Near Miss', unitKerja: 'Gudang Logistik', deskripsi: 'Pallet miring saat proses stacking forklift.', hariHilang: 0, tindakanPerbaikan: 'Pemasangan cermin cembung & pembatasan kecepatan.' },
+        ],
+        trainings: [
+          { id: 'tr-1', year: 2025, jabatan: 'Direksi & Eksekutif', namaPelatihan: 'Tata Kelola Risiko Iklim & TCFD', kategori: 'ESG & Lingkungan', jumlahPeserta: 12, durasiJamPerPeserta: 16, penyelenggara: 'GRI Certified Partner' },
+          { id: 'tr-2', year: 2025, jabatan: 'Manajer', namaPelatihan: 'Kepemimpinan Keselamatan K3 & ESG', kategori: 'Kepemimpinan & Manajemen', jumlahPeserta: 46, durasiJamPerPeserta: 24, penyelenggara: 'Akademi Internal' },
+          { id: 'tr-3', year: 2025, jabatan: 'Supervisor & Superintendent', namaPelatihan: 'Auditor Internal ISO 45001 & 14001', kategori: 'K3 & Keselamatan', jumlahPeserta: 118, durasiJamPerPeserta: 24, penyelenggara: 'LSP K3 Nasional' },
+          { id: 'tr-4', year: 2025, jabatan: 'Staf & Analis', namaPelatihan: 'Akuntansi Karbon & Efisiensi Energi', kategori: 'Digital & Tata Kelola', jumlahPeserta: 285, durasiJamPerPeserta: 20, penyelenggara: 'Pusat Pelatihan Industri' },
+          { id: 'tr-5', year: 2025, jabatan: 'Operator & Teknisi', namaPelatihan: 'Sertifikasi LOTO, Confined Space & K3', kategori: 'K3 & Keselamatan', jumlahPeserta: 1120, durasiJamPerPeserta: 28, penyelenggara: 'PJK3 Kemenaker' },
+          { id: 'tr-6', year: 2024, jabatan: 'Operator & Teknisi', namaPelatihan: 'Keselamatan Operasi Boiler & Turbin', kategori: 'Teknis & Operasional', jumlahPeserta: 980, durasiJamPerPeserta: 24, penyelenggara: 'PJK3 Kemenaker' },
+        ],
+        workforce: {
+          2023: {
+            lokalRing1: 680, lokalNasional: 816, tka: 24, tingkatTurnoverPersen: 4.8,
+            jabatan: [
+              { jabatan: 'Direksi & Eksekutif', lakiLaki: 9, perempuan: 3, tetap: 12, kontrak: 0, lokal: 10, tka: 2 },
+              { jabatan: 'Manajer', lakiLaki: 32, perempuan: 11, tetap: 43, kontrak: 0, lokal: 39, tka: 4 },
+              { jabatan: 'Supervisor & Superintendent', lakiLaki: 86, perempuan: 24, tetap: 106, kontrak: 4, lokal: 104, tka: 6 },
+              { jabatan: 'Staf & Analis', lakiLaki: 148, perempuan: 112, tetap: 215, kontrak: 45, lokal: 254, tka: 6 },
+              { jabatan: 'Operator & Teknisi', lakiLaki: 970, perempuan: 125, tetap: 840, kontrak: 255, lokal: 1089, tka: 6 },
+            ],
+          },
+          2024: {
+            lokalRing1: 745, lokalNasional: 845, tka: 20, tingkatTurnoverPersen: 4.1,
+            jabatan: [
+              { jabatan: 'Direksi & Eksekutif', lakiLaki: 9, perempuan: 3, tetap: 12, kontrak: 0, lokal: 10, tka: 2 },
+              { jabatan: 'Manajer', lakiLaki: 33, perempuan: 13, tetap: 46, kontrak: 0, lokal: 42, tka: 4 },
+              { jabatan: 'Supervisor & Superintendent', lakiLaki: 90, perempuan: 27, tetap: 114, kontrak: 3, lokal: 112, tka: 5 },
+              { jabatan: 'Staf & Analis', lakiLaki: 155, perempuan: 125, tetap: 238, kontrak: 42, lokal: 275, tka: 5 },
+              { jabatan: 'Operator & Teknisi', lakiLaki: 1015, perempuan: 140, tetap: 905, kontrak: 250, lokal: 1151, tka: 4 },
+            ],
+          },
+          2025: {
+            lokalRing1: 810, lokalNasional: 868, tka: 17, tingkatTurnoverPersen: 3.4,
+            jabatan: [
+              { jabatan: 'Direksi & Eksekutif', lakiLaki: 8, perempuan: 4, tetap: 12, kontrak: 0, lokal: 11, tka: 1 },
+              { jabatan: 'Manajer', lakiLaki: 34, perempuan: 15, tetap: 49, kontrak: 0, lokal: 46, tka: 3 },
+              { jabatan: 'Supervisor & Superintendent', lakiLaki: 92, perempuan: 31, tetap: 121, kontrak: 2, lokal: 119, tka: 4 },
+              { jabatan: 'Staf & Analis', lakiLaki: 162, perempuan: 138, tetap: 262, kontrak: 38, lokal: 296, tka: 4 },
+              { jabatan: 'Operator & Teknisi', lakiLaki: 1054, perempuan: 157, tetap: 968, kontrak: 243, lokal: 1206, tka: 5 },
+            ],
+          },
+        },
+        energyEntries: [
+          { id: 'en-1', year: 2025, sumber: 'Listrik PLN (Grid)', kategori: 'Listrik Grid', unitAsli: 'kWh', konsumsiAsli: 48200000, faktorKonversiGJ: 0.0036, faktorEmisiTonCO2ePerGJ: 0.2416, catatanFaktor: '1 kWh = 0.0036 GJ' },
+          { id: 'en-2', year: 2025, sumber: 'PLTS Atap & Surya Terpasang', kategori: 'Energi Terbarukan', unitAsli: 'kWh', konsumsiAsli: 9850000, faktorKonversiGJ: 0.0036, faktorEmisiTonCO2ePerGJ: 0, catatanFaktor: 'Emisi nol (EBT)' },
+          { id: 'en-3', year: 2025, sumber: 'Batu Bara (Boiler Termal)', kategori: 'Bahan Bakar Fosil', unitAsli: 'Ton', konsumsiAsli: 34200, faktorKonversiGJ: 25.8, faktorEmisiTonCO2ePerGJ: 0.0946, catatanFaktor: 'IPCC 25.8 GJ/Ton' },
+          { id: 'en-4', year: 2025, sumber: 'Solar / Biosolar B35', kategori: 'Bahan Bakar Fosil', unitAsli: 'Liter', konsumsiAsli: 2960000, faktorKonversiGJ: 0.0364, faktorEmisiTonCO2ePerGJ: 0.0741, catatanFaktor: '0.0364 GJ/Liter' },
+          { id: 'en-5', year: 2024, sumber: 'Listrik PLN (Grid)', kategori: 'Listrik Grid', unitAsli: 'kWh', konsumsiAsli: 49500000, faktorKonversiGJ: 0.0036, faktorEmisiTonCO2ePerGJ: 0.2416, catatanFaktor: '1 kWh = 0.0036 GJ' },
+          { id: 'en-6', year: 2024, sumber: 'Batu Bara (Boiler Termal)', kategori: 'Bahan Bakar Fosil', unitAsli: 'Ton', konsumsiAsli: 36800, faktorKonversiGJ: 25.8, faktorEmisiTonCO2ePerGJ: 0.0946, catatanFaktor: 'IPCC 25.8 GJ/Ton' },
+          { id: 'en-7', year: 2023, sumber: 'Batu Bara (Boiler Termal)', kategori: 'Bahan Bakar Fosil', unitAsli: 'Ton', konsumsiAsli: 38900, faktorKonversiGJ: 25.8, faktorEmisiTonCO2ePerGJ: 0.0946, catatanFaktor: 'IPCC 25.8 GJ/Ton' },
+        ],
+        environment: {
+          2023: {
+            air: { airTanahM3: 142000, pdamM3: 98000, airPermukaanM3: 320000, airDaurUlangM3: 78000 },
+            emisiScope3TonCO2e: 42800,
+            hayati: { luasanKonservasiHa: 48, luasanRehabilitasiHa: 24, luasanRthPabrikHa: 14.5, jumlahPohonTertanam: 28400 },
+            limbahNonB3: [
+              { id: 'nb3-23-1', jenis: 'Skrap Logam & Besi Bekas', jumlahTon: 412, metodeKelola: 'Daur ulang peleburan', persentaseDaurUlang: 98 },
+            ],
+            limbahB3: [
+              { id: 'b3-23-1', jenis: 'Oli Pelumas Bekas', jumlahTon: 38.4, kodeLimbah: 'B105d', pengelolaBerizin: 'PT Pengelola Limbah Terpadu', statusManifest: 'Manifest SIRAJA Lengkap' },
+            ],
+          },
+          2024: {
+            air: { airTanahM3: 118000, pdamM3: 94000, airPermukaanM3: 310000, airDaurUlangM3: 112000 },
+            emisiScope3TonCO2e: 41100,
+            hayati: { luasanKonservasiHa: 54, luasanRehabilitasiHa: 31.5, luasanRthPabrikHa: 15.8, jumlahPohonTertanam: 41200 },
+            limbahNonB3: [
+              { id: 'nb3-24-1', jenis: 'Skrap Logam & Besi Bekas', jumlahTon: 448, metodeKelola: 'Daur ulang peleburan', persentaseDaurUlang: 99 },
+              { id: 'nb3-24-2', jenis: 'Karton & Palet Kayu', jumlahTon: 204, metodeKelola: 'Reuse mitra UMKM', persentaseDaurUlang: 94 },
+            ],
+            limbahB3: [
+              { id: 'b3-24-1', jenis: 'Oli Pelumas Bekas', jumlahTon: 35.2, kodeLimbah: 'B105d', pengelolaBerizin: 'PT Pengelola Limbah Terpadu', statusManifest: 'Manifest SIRAJA Lengkap' },
+            ],
+          },
+          2025: {
+            air: { airTanahM3: 92000, pdamM3: 91500, airPermukaanM3: 298000, airDaurUlangM3: 146500 },
+            emisiScope3TonCO2e: 38950,
+            hayati: { luasanKonservasiHa: 62.5, luasanRehabilitasiHa: 39, luasanRthPabrikHa: 17.2, jumlahPohonTertanam: 56800 },
+            limbahNonB3: [
+              { id: 'nb3-25-1', jenis: 'Skrap Logam & Besi Bekas', jumlahTon: 472, metodeKelola: 'Daur ulang peleburan', persentaseDaurUlang: 100 },
+              { id: 'nb3-25-2', jenis: 'Sludge Organik WWTP', jumlahTon: 192, metodeKelola: 'Co-processing pupuk', persentaseDaurUlang: 88 },
+            ],
+            limbahB3: [
+              { id: 'b3-25-1', jenis: 'Oli Pelumas Bekas', jumlahTon: 32.8, kodeLimbah: 'B105d', pengelolaBerizin: 'PT Pengelola Limbah Terpadu', statusManifest: 'Manifest SIRAJA Lengkap' },
+              { id: 'b3-25-2', jenis: 'Limbah Terkontaminasi B3 & Majun', jumlahTon: 17.6, kodeLimbah: 'B110d', pengelolaBerizin: 'PT PPLI Bogor', statusManifest: 'Manifest SIRAJA Lengkap' },
+            ],
+          },
+        },
+        marketing: {
+          2023: {
+            indeksKepuasan: 86.2, kepatuhanLabel: 99.1,
+            dn: [{ id: 'dn-23-1', wilayah: 'Pulau Jawa', segmen: 'Konstruksi & Manufaktur', volumeTon: 218000, pendapatanMiliarRp: 1480 }],
+            ln: [{ id: 'ln-23-1', wilayah: 'Asia Tenggara (ASEAN)', segmen: 'Material Industri', volumeTon: 82000, pendapatanMiliarRp: 645 }],
+          },
+          2024: {
+            indeksKepuasan: 88.4, kepatuhanLabel: 99.6,
+            dn: [{ id: 'dn-24-1', wilayah: 'Pulau Jawa', segmen: 'Konstruksi & Infrastruktur', volumeTon: 234000, pendapatanMiliarRp: 1620 }],
+            ln: [{ id: 'ln-24-1', wilayah: 'Asia Tenggara (ASEAN)', segmen: 'Material Industri', volumeTon: 89500, pendapatanMiliarRp: 718 }],
+          },
+          2025: {
+            indeksKepuasan: 91.1, kepatuhanLabel: 100,
+            dn: [
+              { id: 'dn-25-1', wilayah: 'Pulau Jawa', segmen: 'Infrastruktur & Otomotif', volumeTon: 248000, pendapatanMiliarRp: 1765 },
+              { id: 'dn-25-2', wilayah: 'Sumatera & Kalimantan', segmen: 'Proyek Energi', volumeTon: 78500, pendapatanMiliarRp: 585 },
+            ],
+            ln: [
+              { id: 'ln-25-1', wilayah: 'Asia Tenggara (ASEAN)', segmen: 'Material Industri', volumeTon: 94000, pendapatanMiliarRp: 770 },
+              { id: 'ln-25-2', wilayah: 'Jepang & Korea Selatan', segmen: 'Produk Rendah Karbon', volumeTon: 26800, pendapatanMiliarRp: 274 },
+            ],
+          },
+        },
+        supplyChain: [
+          { id: 'sc-1', year: 2025, kategoriPemasok: 'UMKM Lokal (Ring-1)', jenisKomoditas: 'Jasa Fabrikasi & Logistik', jumlahPemasok: 148, nilaiPengadaanMiliarRp: 245, persentaseLolosScreeningESG: 91, rataRataTkdnPersen: 94 },
+          { id: 'sc-2', year: 2025, kategoriPemasok: 'Korporasi Lokal Daerah', jenisKomoditas: 'Bahan Penunjang & Kemasan', jumlahPemasok: 96, nilaiPengadaanMiliarRp: 510, persentaseLolosScreeningESG: 95, rataRataTkdnPersen: 84 },
+          { id: 'sc-3', year: 2025, kategoriPemasok: 'Pemasok Nasional', jenisKomoditas: 'Bahan Baku Utama & Energi', jumlahPemasok: 162, nilaiPengadaanMiliarRp: 1290, persentaseLolosScreeningESG: 98, rataRataTkdnPersen: 72 },
+          { id: 'sc-4', year: 2025, kategoriPemasok: 'Pemasok Internasional', jenisKomoditas: 'Suku Cadang Presisi', jumlahPemasok: 32, nilaiPengadaanMiliarRp: 385, persentaseLolosScreeningESG: 100, rataRataTkdnPersen: 12 },
+          { id: 'sc-5', year: 2024, kategoriPemasok: 'Pemasok Nasional', jenisKomoditas: 'Bahan Baku Utama', jumlahPemasok: 152, nilaiPengadaanMiliarRp: 1180, persentaseLolosScreeningESG: 94, rataRataTkdnPersen: 69 },
+        ],
+        certifications: [
+          { id: 'cert-1', year: 2025, tipe: 'Sertifikasi', nama: 'ISO 14001:2015 Sistem Manajemen Lingkungan', nomorSertifikat: 'ENV-ID-2025-8841', lembagaPenerbit: 'TÜV Rheinland', ruangLingkup: 'Seluruh Fasilitas Produksi', masaBerlaku: '2028-03-31', status: 'Aktif' },
+          { id: 'cert-2', year: 2025, tipe: 'Sertifikasi', nama: 'ISO 45001:2018 Sistem Manajemen K3', nomorSertifikat: 'OHS-ID-2025-4410', lembagaPenerbit: 'BSI Assurance', ruangLingkup: 'Operasional Pabrik & Gudang', masaBerlaku: '2028-03-31', status: 'Aktif' },
+          { id: 'cert-3', year: 2025, tipe: 'Sertifikasi', nama: 'ISO 50001:2018 Sistem Manajemen Energi', nomorSertifikat: 'ENM-ID-2025-1102', lembagaPenerbit: 'SGS Indonesia', ruangLingkup: 'Unit Utilitas & Boiler', masaBerlaku: '2027-11-15', status: 'Aktif' },
+          { id: 'cert-4', year: 2025, tipe: 'Penghargaan', nama: 'PROPER Peringkat Hijau KLHK', nomorSertifikat: 'SK.1194/MENLHK/2025', lembagaPenerbit: 'Kementerian LHK RI', ruangLingkup: 'Pabrik Terpadu Karawang', masaBerlaku: 'Periode 2025', status: 'Diterima' },
+        ],
+        associations: [
+          { id: 'aso-1', year: 2025, singkatan: 'KADIN Indonesia', namaAsosiasi: 'Kamar Dagang dan Industri Indonesia', tingkat: 'Nasional', peran: 'Komite Teknis ESG', tahunBergabung: 2016, bidangFokus: 'Dekarbonisasi & Ekonomi Sirkular' },
+          { id: 'aso-2', year: 2025, singkatan: 'APINDO', namaAsosiasi: 'Asosiasi Pengusaha Indonesia', tingkat: 'Nasional', peran: 'Anggota Aktif', tahunBergabung: 2015, bidangFokus: 'Hubungan Industrial & K3' },
+          { id: 'aso-3', year: 2025, singkatan: 'IGCN', namaAsosiasi: 'Indonesia Global Compact Network', tingkat: 'Internasional', peran: 'Anggota Aktif', tahunBergabung: 2021, bidangFokus: 'SDG Alignment & HAM' },
+        ],
+      };
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const activeId = localStorage.getItem(ACTIVE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return {
+              profiles: parsed,
+              activeProfileId: parsed.some((p) => p.id === activeId) ? activeId : parsed[0].id,
+            };
+          }
+        }
+      } catch (e) { /* fallback */ }
+      const defaultProfiles = [
+        { id: 'prof-1', dataset: createInitialDataset('PT Nusantara Lestari Industri Tbk', 'Manufaktur & Material Terpadu', 'Jawa Barat & Kalimantan Timur') },
+        { id: 'prof-2', dataset: createInitialDataset('PT Energi Hijau Sentosa', 'Energi Terbarukan & Infrastruktur', 'Jawa Tengah & Sulawesi Selatan') },
+      ];
+      return { profiles: defaultProfiles, activeProfileId: 'prof-1' };
+    }
+
+    let state = loadState();
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.profiles));
+        localStorage.setItem(ACTIVE_KEY, state.activeProfileId);
+      } catch (e) {
+        statusBanner = { tone: 'warn', text: 'Gagal menyimpan ke localStorage browser: ' + e.message };
+      }
+    }
+
+    function getActiveProfile() {
+      return state.profiles.find((p) => p.id === state.activeProfileId) || state.profiles[0];
+    }
+
+    function getData() {
+      return getActiveProfile().dataset;
+    }
+
+    function calcTSIR(s) {
+      if (!s || !s.jamKerjaSelamat) return 0;
+      const totalCases = (s.medicalTreatment || 0) + (s.restrictedWork || 0) + (s.lti || 0) + (s.fatality || 0);
+      return (totalCases * (s.basisPerhitungan || 200000)) / s.jamKerjaSelamat;
+    }
+
+    function calcGJ(e) {
+      return (Number(e.konsumsiAsli) || 0) * (Number(e.faktorKonversiGJ) || 0);
+    }
+
+    function calcEmisi(e) {
+      return calcGJ(e) * (Number(e.faktorEmisiTonCO2ePerGJ) || 0);
+    }
+
+    function getWfTotals(wf) {
+      const rows = wf.jabatan || [];
+      return rows.reduce((acc, r) => ({
+        total: acc.total + r.lakiLaki + r.perempuan,
+        laki: acc.laki + r.lakiLaki,
+        perempuan: acc.perempuan + r.perempuan,
+        tetap: acc.tetap + r.tetap,
+        kontrak: acc.kontrak + r.kontrak,
+        lokal: acc.lokal + r.lokal,
+        tka: acc.tka + r.tka,
+      }), { total: 0, laki: 0, perempuan: 0, tetap: 0, kontrak: 0, lokal: 0, tka: 0 });
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    function setSection(id) {
+      activeSection = id;
+      document.getElementById('sidebar').classList.remove('open');
+      render();
+    }
+
+    function setYear(yr) {
+      selectedYear = yr;
+      render();
+    }
+
+    function openModal(title, html) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = html;
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.remove('open');
+    }
+
+    function notify(tone, text) {
+      statusBanner = { tone, text };
+      render();
+    }
+
+    // ==================== EXCEL EXPORT & IMPORT (MULTI-SHEET + LOCALSTORAGE) ====================
+    function buildSheetArrays(d) {
+      const sheets = {};
+      sheets['Profil_Ringkasan'] = [
+        ['Field', 'Nilai'],
+        ['Nama Perusahaan', d.company.namaPerusahaan],
+        ['Sektor Usaha', d.company.sektorUsaha],
+        ['Lokasi Operasional', d.company.lokasiOperasional],
+        ['Standar Acuan', d.company.standarAcuan],
+        ['Ringkasan Direksi', d.company.ringkasanDireksi],
+        ['Produksi 2023 (Ton)', d.company.volumeProduksiTon[2023]],
+        ['Produksi 2024 (Ton)', d.company.volumeProduksiTon[2024]],
+        ['Produksi 2025 (Ton)', d.company.volumeProduksiTon[2025]],
+      ];
+      sheets['01_CSR'] = [
+        ['ID', 'Tahun', 'Nama Program', 'Pilar', 'Lokasi', 'Anggaran (Rp)', 'Realisasi (Rp)', 'Penerima Manfaat', 'Satuan', 'Status'],
+        ...d.csrPrograms.map((p) => [p.id, p.year, p.namaProgram, p.pilar, p.lokasi, p.anggaranRp, p.realisasiRp, p.penerimaManfaat, p.satuanPenerima, p.status]),
+      ];
+      sheets['02_K3_TSIR'] = [
+        ['Tahun', 'Jam Kerja Selamat', 'Zero Accident Kumulatif', 'Tenaga Kerja', 'Basis TSIR', 'Near Miss', 'First Aid', 'MTC', 'RWC', 'LTI', 'Fatality', 'Hari Hilang', 'TSIR', 'Catatan Zero Accident'],
+        ...YEARS.map((y) => {
+          const s = d.k3Summaries[y];
+          return [y, s.jamKerjaSelamat, s.jamKerjaZeroAccidentKumulatif, s.jumlahTenagaKerja, s.basisPerhitungan, s.nearMiss, s.firstAid, s.medicalTreatment, s.restrictedWork, s.lti, s.fatality, s.hariHilang, Number(calcTSIR(s).toFixed(4)), s.catatanZeroAccident];
+        }),
+        [],
+        ['Log Insiden ID', 'Tahun', 'Tanggal', 'Kategori', 'Unit Kerja', 'Deskripsi', 'Hari Hilang', 'Tindakan Perbaikan'],
+        ...d.k3Incidents.map((i) => [i.id, i.year, i.tanggal, i.kategori, i.unitKerja, i.deskripsi, i.hariHilang, i.tindakanPerbaikan]),
+      ];
+      sheets['03_Pelatihan'] = [
+        ['ID', 'Tahun', 'Jabatan', 'Nama Pelatihan', 'Kategori', 'Jumlah Peserta', 'Durasi (Jam/Org)', 'Total Jam', 'Penyelenggara'],
+        ...d.trainings.map((t) => [t.id, t.year, t.jabatan, t.namaPelatihan, t.kategori, t.jumlahPeserta, t.durasiJamPerPeserta, t.jumlahPeserta * t.durasiJamPerPeserta, t.penyelenggara]),
+      ];
+      sheets['04_Kinerja_Sosial'] = [
+        ['Tahun', 'Jabatan', 'Laki-laki', 'Perempuan', 'Tetap (PKWTT)', 'Kontrak (PKWT)', 'Lokal (TKI)', 'TKA'],
+        ...YEARS.flatMap((y) => (d.workforce[y].jabatan || []).map((j) => [y, j.jabatan, j.lakiLaki, j.perempuan, j.tetap, j.kontrak, j.lokal, j.tka])),
+        [],
+        ['Ringkasan Tahun', 'Total Karyawan', 'Lokal Ring-1', 'Lokal Nasional', 'TKA', 'Turnover (%)'],
+        ...YEARS.map((y) => {
+          const wf = d.workforce[y];
+          const tot = getWfTotals(wf);
+          return [y, tot.total, wf.lokalRing1, wf.lokalNasional, tot.tka, wf.tingkatTurnoverPersen];
+        }),
+      ];
+      sheets['05_Energi_GJ'] = [
+        ['ID', 'Tahun', 'Sumber Energi', 'Kategori', 'Unit Fisik', 'Konsumsi Fisik', 'Faktor Konversi GJ', 'Total Energi (GJ)', 'Faktor Emisi', 'Emisi (tCO2e)', 'Catatan'],
+        ...d.energyEntries.map((e) => [e.id, e.year, e.sumber, e.kategori, e.unitAsli, e.konsumsiAsli, e.faktorKonversiGJ, Number(calcGJ(e).toFixed(2)), e.faktorEmisiTonCO2ePerGJ, Number(calcEmisi(e).toFixed(2)), e.catatanFaktor]),
+      ];
+      sheets['06_Lingkungan'] = [
+        ['Tahun', 'Air Tanah (m3)', 'PDAM (m3)', 'Air Permukaan (m3)', 'Air Daur Ulang (m3)', 'Limbah Non-B3 (Ton)', 'Limbah B3 (Ton)', 'Emisi Scope 3 (tCO2e)', 'Konservasi (Ha)', 'Rehabilitasi (Ha)', 'RTH Pabrik (Ha)', 'Pohon Tertanam'],
+        ...YEARS.map((y) => {
+          const ev = d.environment[y];
+          return [
+            y, ev.air.airTanahM3, ev.air.pdamM3, ev.air.airPermukaanM3, ev.air.airDaurUlangM3,
+            Number(ev.limbahNonB3.reduce((a, b) => a + b.jumlahTon, 0).toFixed(2)),
+            Number(ev.limbahB3.reduce((a, b) => a + b.jumlahTon, 0).toFixed(2)),
+            ev.emisiScope3TonCO2e, ev.hayati.luasanKonservasiHa, ev.hayati.luasanRehabilitasiHa, ev.hayati.luasanRthPabrikHa, ev.hayati.jumlahPohonTertanam,
+          ];
+        }),
+        [],
+        ['Log Limbah ID', 'Tahun', 'Klasifikasi', 'Jenis Limbah', 'Jumlah (Ton)', 'Metode / Kode', 'Daur Ulang (%) / Pengelola', 'Status Manifest'],
+        ...YEARS.flatMap((y) => [
+          ...d.environment[y].limbahNonB3.map((w) => [w.id, y, 'Non-B3', w.jenis, w.jumlahTon, w.metodeKelola, w.persentaseDaurUlang, '']),
+          ...d.environment[y].limbahB3.map((w) => [w.id, y, 'B3', w.jenis, w.jumlahTon, w.kodeLimbah, w.pengelolaBerizin, w.statusManifest]),
+        ]),
+      ];
+      sheets['07_Pemasaran'] = [
+        ['Tahun', 'Tipe Pasar', 'Wilayah / Negara', 'Segmen Produk', 'Volume (Ton)', 'Pendapatan (Rp Miliar)'],
+        ...YEARS.flatMap((y) => [
+          ...d.marketing[y].dn.map((m) => [y, 'Dalam Negeri (DN)', m.wilayah, m.segmen, m.volumeTon, m.pendapatanMiliarRp]),
+          ...d.marketing[y].ln.map((m) => [y, 'Luar Negeri (LN)', m.wilayah, m.segmen, m.volumeTon, m.pendapatanMiliarRp]),
+        ]),
+      ];
+      sheets['08_Supply_Chain'] = [
+        ['ID', 'Tahun', 'Kategori Pemasok', 'Komoditas', 'Jumlah Pemasok', 'Nilai Pengadaan (Rp Miliar)', 'Screening ESG (%)', 'TKDN (%)'],
+        ...d.supplyChain.map((s) => [s.id, s.year, s.kategoriPemasok, s.jenisKomoditas, s.jumlahPemasok, s.nilaiPengadaanMiliarRp, s.persentaseLolosScreeningESG, s.rataRataTkdnPersen]),
+      ];
+      sheets['09_Sertifikasi'] = [
+        ['ID', 'Tahun', 'Tipe', 'Nama', 'Nomor', 'Lembaga Penerbit', 'Ruang Lingkup', 'Masa Berlaku', 'Status'],
+        ...d.certifications.map((c) => [c.id, c.year, c.tipe, c.nama, c.nomorSertifikat, c.lembagaPenerbit, c.ruangLingkup, c.masaBerlaku, c.status]),
+      ];
+      sheets['10_Asosiasi'] = [
+        ['ID', 'Tahun', 'Singkatan', 'Nama Asosiasi', 'Tingkat', 'Peran', 'Tahun Bergabung', 'Bidang Fokus'],
+        ...d.associations.map((a) => [a.id, a.year, a.singkatan, a.namaAsosiasi, a.tingkat, a.peran, a.tahunBergabung, a.bidangFokus]),
+      ];
+      return sheets;
+    }
+
+    function exportActiveToExcel() {
+      const d = getData();
+      const sheets = buildSheetArrays(d);
+      const safeName = d.company.namaPerusahaan.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'ESG';
+
+      if (window.XLSX) {
+        const wb = XLSX.utils.book_new();
+        Object.keys(sheets).forEach((name) => {
+          const ws = XLSX.utils.aoa_to_sheet(sheets[name]);
+          XLSX.utils.book_append_sheet(wb, ws, name);
+        });
+        XLSX.writeFile(wb, `Laporan_Keberlanjutan_${safeName}.xlsx`);
+        notify('ok', `Berhasil mengekspor data localStorage profil "${d.company.namaPerusahaan}" ke Excel (.xlsx 11 sheet).`);
+        return;
+      }
+
+      // Offline fallback: multi-sheet Excel SpreadsheetML (.xls)
+      let xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>' +
+        '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+      Object.keys(sheets).forEach((name) => {
+        xml += `<Worksheet ss:Name="${escapeHtml(name.slice(0, 31))}"><Table>`;
+        sheets[name].forEach((row) => {
+          xml += '<Row>';
+          row.forEach((cell) => {
+            const isNum = typeof cell === 'number' && !isNaN(cell);
+            xml += `<Cell><Data ss:Type="${isNum ? 'Number' : 'String'}">${escapeHtml(cell)}</Data></Cell>`;
+          });
+          xml += '</Row>';
+        });
+        xml += '</Table></Worksheet>';
+      });
+      xml += '</Workbook>';
+
+      const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Laporan_Keberlanjutan_${safeName}.xls`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      notify('ok', `Berhasil mengekspor data ke Excel multi-sheet offline (.xls).`);
+    }
+
+    function handleExcelImport(event) {
+      const file = event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      if (!window.XLSX) {
+        notify('warn', 'Library Excel XLSX belum termuat (membutuhkan koneksi internet saat impor .xlsx).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+          const getRows = (name) => wb.Sheets[name] ? XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' }) : [];
+          const next = JSON.parse(JSON.stringify(getData()));
+          const pYear = (v) => ([2023, 2024, 2025].includes(Number(v)) ? Number(v) : 2025);
+
+          const pr = getRows('Profil_Ringkasan');
+          if (pr.length > 1) {
+            const map = new Map(pr.slice(1).map((r) => [String(r[0]), String(r[1] ?? '')]));
+            if (map.get('Nama Perusahaan')) next.company.namaPerusahaan = map.get('Nama Perusahaan');
+            if (map.get('Sektor Usaha')) next.company.sektorUsaha = map.get('Sektor Usaha');
+            if (map.get('Lokasi Operasional')) next.company.lokasiOperasional = map.get('Lokasi Operasional');
+            if (map.get('Standar Acuan')) next.company.standarAcuan = map.get('Standar Acuan');
+            if (map.get('Ringkasan Direksi')) next.company.ringkasanDireksi = map.get('Ringkasan Direksi');
+            if (map.get('Produksi 2023 (Ton)')) next.company.volumeProduksiTon[2023] = Number(map.get('Produksi 2023 (Ton)')) || next.company.volumeProduksiTon[2023];
+            if (map.get('Produksi 2024 (Ton)')) next.company.volumeProduksiTon[2024] = Number(map.get('Produksi 2024 (Ton)')) || next.company.volumeProduksiTon[2024];
+            if (map.get('Produksi 2025 (Ton)')) next.company.volumeProduksiTon[2025] = Number(map.get('Produksi 2025 (Ton)')) || next.company.volumeProduksiTon[2025];
+          }
+
+          const csr = getRows('01_CSR');
+          if (csr.length > 1) {
+            next.csrPrograms = csr.slice(1).filter((r) => String(r[2] || '').trim()).map((r, i) => ({
+              id: String(r[0] || uid('csr')), year: pYear(r[1]), namaProgram: String(r[2]), pilar: String(r[3] || 'Pendidikan'),
+              lokasi: String(r[4] || ''), anggaranRp: Number(r[5]) || 0, realisasiRp: Number(r[6]) || 0,
+              penerimaManfaat: Number(r[7]) || 0, satuanPenerima: String(r[8] || 'Orang'), status: String(r[9]) === 'Berjalan' ? 'Berjalan' : 'Selesai',
+            }));
+          }
+
+          const k3 = getRows('02_K3_TSIR');
+          if (k3.length > 1) {
+            const idx = k3.findIndex((r) => String(r[0]) === 'Log Insiden ID');
+            const sumRows = idx > -1 ? k3.slice(1, idx) : k3.slice(1);
+            sumRows.filter((r) => [2023, 2024, 2025].includes(Number(r[0]))).forEach((r) => {
+              const y = pYear(r[0]);
+              next.k3Summaries[y] = {
+                jamKerjaSelamat: Number(r[1]) || 0, jamKerjaZeroAccidentKumulatif: Number(r[2]) || 0,
+                jumlahTenagaKerja: Number(r[3]) || 0, basisPerhitungan: Number(r[4]) === 1000000 ? 1000000 : 200000,
+                nearMiss: Number(r[5]) || 0, firstAid: Number(r[6]) || 0, medicalTreatment: Number(r[7]) || 0,
+                restrictedWork: Number(r[8]) || 0, lti: Number(r[9]) || 0, fatality: Number(r[10]) || 0,
+                hariHilang: Number(r[11]) || 0, catatanZeroAccident: String(r[13] || ''),
+              };
+            });
+            if (idx > -1) {
+              next.k3Incidents = k3.slice(idx + 1).filter((r) => String(r[2] || '').trim()).map((r) => ({
+                id: String(r[0] || uid('inc')), year: pYear(r[1]), tanggal: String(r[2]), kategori: String(r[3] || 'Near Miss'),
+                unitKerja: String(r[4] || ''), deskripsi: String(r[5] || ''), hariHilang: Number(r[6]) || 0, tindakanPerbaikan: String(r[7] || ''),
+              }));
+            }
+          }
+
+          const tr = getRows('03_Pelatihan');
+          if (tr.length > 1) {
+            next.trainings = tr.slice(1).filter((r) => String(r[3] || '').trim()).map((r) => ({
+              id: String(r[0] || uid('tr')), year: pYear(r[1]), jabatan: String(r[2] || 'Operator & Teknisi'),
+              namaPelatihan: String(r[3]), kategori: String(r[4] || 'Teknis & Operasional'),
+              jumlahPeserta: Number(r[5]) || 0, durasiJamPerPeserta: Number(r[6]) || 0, penyelenggara: String(r[8] || ''),
+            }));
+          }
+
+          const wf = getRows('04_Kinerja_Sosial');
+          if (wf.length > 1) {
+            const idx = wf.findIndex((r) => String(r[0]) === 'Ringkasan Tahun');
+            const jRows = idx > -1 ? wf.slice(1, idx) : wf.slice(1);
+            const grouped = { 2023: [], 2024: [], 2025: [] };
+            jRows.filter((r) => [2023, 2024, 2025].includes(Number(r[0])) && r[1]).forEach((r) => {
+              grouped[pYear(r[0])].push({
+                jabatan: String(r[1]), lakiLaki: Number(r[2]) || 0, perempuan: Number(r[3]) || 0,
+                tetap: Number(r[4]) || 0, kontrak: Number(r[5]) || 0, lokal: Number(r[6]) || 0, tka: Number(r[7]) || 0,
+              });
+            });
+            YEARS.forEach((y) => { if (grouped[y].length) next.workforce[y].jabatan = grouped[y]; });
+            if (idx > -1) {
+              wf.slice(idx + 1).filter((r) => [2023, 2024, 2025].includes(Number(r[0]))).forEach((r) => {
+                const y = pYear(r[0]);
+                next.workforce[y].lokalRing1 = Number(r[2]) || 0;
+                next.workforce[y].lokalNasional = Number(r[3]) || 0;
+                next.workforce[y].tka = Number(r[4]) || 0;
+                next.workforce[y].tingkatTurnoverPersen = Number(r[5]) || 0;
+              });
+            }
+          }
+
+          const en = getRows('05_Energi_GJ');
+          if (en.length > 1) {
+            next.energyEntries = en.slice(1).filter((r) => String(r[2] || '').trim()).map((r) => ({
+              id: String(r[0] || uid('en')), year: pYear(r[1]), sumber: String(r[2]), kategori: String(r[3] || 'Bahan Bakar Fosil'),
+              unitAsli: String(r[4] || 'kWh'), konsumsiAsli: Number(r[5]) || 0, faktorKonversiGJ: Number(r[6]) || 0,
+              faktorEmisiTonCO2ePerGJ: Number(r[8]) || 0, catatanFaktor: String(r[10] || ''),
+            }));
+          }
+
+          const env = getRows('06_Lingkungan');
+          if (env.length > 1) {
+            const idx = env.findIndex((r) => String(r[0]) === 'Log Limbah ID');
+            const sRows = idx > -1 ? env.slice(1, idx) : env.slice(1);
+            sRows.filter((r) => [2023, 2024, 2025].includes(Number(r[0]))).forEach((r) => {
+              const y = pYear(r[0]);
+              next.environment[y].air = { airTanahM3: Number(r[1]) || 0, pdamM3: Number(r[2]) || 0, airPermukaanM3: Number(r[3]) || 0, airDaurUlangM3: Number(r[4]) || 0 };
+              next.environment[y].emisiScope3TonCO2e = Number(r[7]) || 0;
+              next.environment[y].hayati = { luasanKonservasiHa: Number(r[8]) || 0, luasanRehabilitasiHa: Number(r[9]) || 0, luasanRthPabrikHa: Number(r[10]) || 0, jumlahPohonTertanam: Number(r[11]) || 0 };
+            });
+            if (idx > -1) {
+              const gNB = { 2023: [], 2024: [], 2025: [] }, gB3 = { 2023: [], 2024: [], 2025: [] };
+              env.slice(idx + 1).filter((r) => String(r[3] || '').trim()).forEach((r) => {
+                const y = pYear(r[1]);
+                if (String(r[2]) === 'B3') {
+                  gB3[y].push({ id: String(r[0] || uid('b3')), jenis: String(r[3]), jumlahTon: Number(r[4]) || 0, kodeLimbah: String(r[5] || '-'), pengelolaBerizin: String(r[6] || ''), statusManifest: String(r[7] || 'Manifest SIRAJA Lengkap') });
+                } else {
+                  gNB[y].push({ id: String(r[0] || uid('nb3')), jenis: String(r[3]), jumlahTon: Number(r[4]) || 0, metodeKelola: String(r[5] || ''), persentaseDaurUlang: Number(r[6]) || 0 });
+                }
+              });
+              YEARS.forEach((y) => { if (gNB[y].length) next.environment[y].limbahNonB3 = gNB[y]; if (gB3[y].length) next.environment[y].limbahB3 = gB3[y]; });
+            }
+          }
+
+          const mkt = getRows('07_Pemasaran');
+          if (mkt.length > 1) {
+            const gDN = { 2023: [], 2024: [], 2025: [] }, gLN = { 2023: [], 2024: [], 2025: [] };
+            mkt.slice(1).filter((r) => [2023, 2024, 2025].includes(Number(r[0])) && r[2]).forEach((r) => {
+              const y = pYear(r[0]);
+              const item = { id: uid('mkt'), wilayah: String(r[2]), segmen: String(r[3] || ''), volumeTon: Number(r[4]) || 0, pendapatanMiliarRp: Number(r[5]) || 0 };
+              if (String(r[1]).includes('LN')) gLN[y].push(item); else gDN[y].push(item);
+            });
+            YEARS.forEach((y) => { if (gDN[y].length || gLN[y].length) { next.marketing[y].dn = gDN[y]; next.marketing[y].ln = gLN[y]; } });
+          }
+
+          const sc = getRows('08_Supply_Chain');
+          if (sc.length > 1) {
+            next.supplyChain = sc.slice(1).filter((r) => String(r[2] || '').trim()).map((r) => ({
+              id: String(r[0] || uid('sc')), year: pYear(r[1]), kategoriPemasok: String(r[2]), jenisKomoditas: String(r[3] || ''),
+              jumlahPemasok: Number(r[4]) || 0, nilaiPengadaanMiliarRp: Number(r[5]) || 0, persentaseLolosScreeningESG: Number(r[6]) || 0, rataRataTkdnPersen: Number(r[7]) || 0,
+            }));
+          }
+
+          const cert = getRows('09_Sertifikasi');
+          if (cert.length > 1) {
+            next.certifications = cert.slice(1).filter((r) => String(r[3] || '').trim()).map((r) => ({
+              id: String(r[0] || uid('cert')), year: pYear(r[1]), tipe: String(r[2]) === 'Penghargaan' ? 'Penghargaan' : 'Sertifikasi',
+              nama: String(r[3]), nomorSertifikat: String(r[4] || ''), lembagaPenerbit: String(r[5] || ''), ruangLingkup: String(r[6] || ''), masaBerlaku: String(r[7] || ''), status: String(r[8] || 'Aktif'),
+            }));
+          }
+
+          const aso = getRows('10_Asosiasi');
+          if (aso.length > 1) {
+            next.associations = aso.slice(1).filter((r) => String(r[3] || '').trim()).map((r) => ({
+              id: String(r[0] || uid('aso')), year: pYear(r[1]), singkatan: String(r[2] || ''), namaAsosiasi: String(r[3]),
+              tingkat: String(r[4] || 'Nasional'), peran: String(r[5] || 'Anggota Aktif'), tahunBergabung: Number(r[6]) || 2020, bidangFokus: String(r[7] || ''),
+            }));
+          }
+
+          getActiveProfile().dataset = next;
+          saveState();
+          notify('ok', `Data dari file Excel "${file.name}" berhasil dimuat dan disimpan ke localStorage.`);
+        } catch (err) {
+          notify('warn', 'Gagal membaca file Excel: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function resetAllData() {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACTIVE_KEY);
+      state = loadState();
+      saveState();
+      notify('ok', 'Seluruh profil dan data contoh dikembalikan ke kondisi awal.');
+    }
+
+    // ==================== PROFILE MANAGER ====================
+    function openProfileModal() {
+      const profHtml = state.profiles.map((p) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid ${p.id === state.activeProfileId ? '#14532D' : '#E7E5E4'};background:${p.id === state.activeProfileId ? '#ECFDF5' : '#FFF'};border-radius:10px;margin-bottom:8px;">
+          <div>
+            <div style="font-weight:600;font-size:13px;">${escapeHtml(p.dataset.company.namaPerusahaan)}</div>
+            <div style="font-size:11px;color:#57534E;">${escapeHtml(p.dataset.company.sektorUsaha)} · ${escapeHtml(p.dataset.company.lokasiOperasional)}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${p.id === state.activeProfileId
+              ? '<span style="font-size:11px;font-weight:700;color:#14532D;padding:4px 8px;">Aktif</span>'
+              : `<button class="btn btn-secondary btn-sm" onclick="switchProfile('${escapeHtml(p.id)}')">Pakai</button>`}
+            ${state.profiles.length > 1
+              ? `<button class="btn btn-danger btn-sm" onclick="deleteProfile('${escapeHtml(p.id)}')">Hapus</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      openModal('Ganti & Tambah Profil Perusahaan (LocalStorage)', `
+        <div style="margin-bottom:16px;">${profHtml}</div>
+        <form onsubmit="createNewProfile(event)" style="border-top:1px solid #E7E5E4;padding-top:14px;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Tambah Profil Perusahaan Baru</div>
+          <div class="field"><label>Nama Perusahaan</label><input required id="np_nama" placeholder="PT Hijau Makmur Sejahtera" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Sektor Usaha</label><input required id="np_sektor" value="Industri Manufaktur" /></div>
+            <div class="field"><label>Lokasi Operasional</label><input required id="np_lokasi" value="Jawa Timur" /></div>
+          </div>
+          <div class="modal-foot">
+            <button type="submit" class="btn btn-primary">Simpan & Aktifkan Profil</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function switchProfile(id) {
+      state.activeProfileId = id;
+      saveState();
+      closeModal();
+      render();
+    }
+
+    function deleteProfile(id) {
+      if (state.profiles.length <= 1) return;
+      state.profiles = state.profiles.filter((p) => p.id !== id);
+      if (state.activeProfileId === id) state.activeProfileId = state.profiles[0].id;
+      saveState();
+      openProfileModal();
+      render();
+    }
+
+    function createNewProfile(e) {
+      e.preventDefault();
+      const nama = document.getElementById('np_nama').value.trim();
+      const sektor = document.getElementById('np_sektor').value.trim();
+      const lokasi = document.getElementById('np_lokasi').value.trim();
+      const newProf = { id: uid('prof'), dataset: createInitialDataset(nama, sektor, lokasi) };
+      state.profiles.push(newProf);
+      state.activeProfileId = newProf.id;
+      saveState();
+      closeModal();
+      notify('ok', `Profil "${nama}" ditambahkan ke localStorage.`);
+    }
+
+    // ==================== CRUD MODALS PER SECTION ====================
+    function openCompanyEditModal() {
+      const c = getData().company;
+      openModal('Ubah Profil Perusahaan', `
+        <form onsubmit="saveCompanyEdit(event)">
+          <div class="field"><label>Nama Perusahaan</label><input required id="c_nama" value="${escapeHtml(c.namaPerusahaan)}" /></div>
+          <div class="field"><label>Sektor Usaha</label><input required id="c_sektor" value="${escapeHtml(c.sektorUsaha)}" /></div>
+          <div class="field"><label>Lokasi Operasional</label><input required id="c_lokasi" value="${escapeHtml(c.lokasiOperasional)}" /></div>
+          <div class="field"><label>Standar Acuan</label><input required id="c_standar" value="${escapeHtml(c.standarAcuan)}" /></div>
+          <div class="field"><label>Produksi ${selectedYear} (Ton)</label><input type="number" min="1" required id="c_prod" value="${c.volumeProduksiTon[selectedYear]}" /></div>
+          <div class="field"><label>Ringkasan Direksi</label><textarea rows="3" id="c_ring">${escapeHtml(c.ringkasanDireksi)}</textarea></div>
+          <div class="modal-foot">
+            <button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Profil</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function saveCompanyEdit(e) {
+      e.preventDefault();
+      const c = getData().company;
+      c.namaPerusahaan = document.getElementById('c_nama').value.trim();
+      c.sektorUsaha = document.getElementById('c_sektor').value.trim();
+      c.lokasiOperasional = document.getElementById('c_lokasi').value.trim();
+      c.standarAcuan = document.getElementById('c_standar').value.trim();
+      c.volumeProduksiTon[selectedYear] = Number(document.getElementById('c_prod').value) || 1;
+      c.ringkasanDireksi = document.getElementById('c_ring').value.trim();
+      saveState(); closeModal(); render();
+    }
+
+    // 01 CSR
+    function openCsrModal(id) {
+      const item = id ? getData().csrPrograms.find((p) => p.id === id) : null;
+      const pilars = ['Pendidikan', 'Kesehatan', 'Ekonomi & UMKM', 'Lingkungan', 'Sosial & Infrastruktur'];
+      openModal(item ? 'Edit Program CSR' : 'Tambah Program CSR', `
+        <form onsubmit="saveCsr(event, '${id || ''}')">
+          <div class="field"><label>Nama Program</label><input required id="f_nama" value="${escapeHtml(item?.namaProgram || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Pilar</label><select id="f_pilar">${pilars.map((p) => `<option ${item?.pilar===p?'selected':''}>${p}</option>`).join('')}</select></div>
+            <div class="field"><label>Lokasi</label><input required id="f_lok" value="${escapeHtml(item?.lokasi || '')}" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Anggaran (Rp)</label><input type="number" min="0" required id="f_ang" value="${item?.anggaranRp ?? 500000000}" /></div>
+            <div class="field"><label>Realisasi (Rp)</label><input type="number" min="0" required id="f_real" value="${item?.realisasiRp ?? 500000000}" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Penerima Manfaat</label><input type="number" min="0" required id="f_pen" value="${item?.penerimaManfaat ?? 100}" /></div>
+            <div class="field"><label>Satuan</label><input required id="f_sat" value="${escapeHtml(item?.satuanPenerima || 'Warga')}" /></div>
+          </div>
+          <div class="field"><label>Status</label><select id="f_stat"><option ${item?.status==='Selesai'?'selected':''}>Selesai</option><option ${item?.status==='Berjalan'?'selected':''}>Berjalan</option></select></div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveCsr(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('csr'), year: selectedYear,
+        namaProgram: document.getElementById('f_nama').value.trim(),
+        pilar: document.getElementById('f_pilar').value,
+        lokasi: document.getElementById('f_lok').value.trim(),
+        anggaranRp: Number(document.getElementById('f_ang').value) || 0,
+        realisasiRp: Number(document.getElementById('f_real').value) || 0,
+        penerimaManfaat: Number(document.getElementById('f_pen').value) || 0,
+        satuanPenerima: document.getElementById('f_sat').value.trim(),
+        status: document.getElementById('f_stat').value,
+      };
+      const arr = getData().csrPrograms;
+      if (id) getData().csrPrograms = arr.map((x) => x.id === id ? obj : x);
+      else arr.unshift(obj);
+      saveState(); closeModal(); render();
+    }
+    function delCsr(id) { getData().csrPrograms = getData().csrPrograms.filter((x) => x.id !== id); saveState(); render(); }
+
+    // 02 K3
+    function updateK3Field(field, val) {
+      const s = getData().k3Summaries[selectedYear];
+      s[field] = field === 'catatanZeroAccident' ? val : (Number(val) || 0);
+      saveState(); render();
+    }
+    function openIncModal(id) {
+      const item = id ? getData().k3Incidents.find((i) => i.id === id) : null;
+      const cats = ['Near Miss', 'First Aid', 'Medical Treatment', 'Restricted Work', 'Lost Time Injury', 'Fatality'];
+      openModal(item ? 'Edit Log Insiden K3' : 'Tambah Log Insiden K3', `
+        <form onsubmit="saveInc(event, '${id || ''}')">
+          <div class="grid-2">
+            <div class="field"><label>Tanggal</label><input type="date" required id="k_tgl" value="${escapeHtml(item?.tanggal || `${selectedYear}-06-15`)}" /></div>
+            <div class="field"><label>Kategori</label><select id="k_kat">${cats.map((c) => `<option ${item?.kategori===c?'selected':''}>${c}</option>`).join('')}</select></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Unit Kerja</label><input required id="k_unit" value="${escapeHtml(item?.unitKerja || '')}" /></div>
+            <div class="field"><label>Hari Hilang</label><input type="number" min="0" required id="k_hl" value="${item?.hariHilang ?? 0}" /></div>
+          </div>
+          <div class="field"><label>Deskripsi Kejadian</label><textarea rows="2" required id="k_desc">${escapeHtml(item?.deskripsi || '')}</textarea></div>
+          <div class="field"><label>Tindakan Perbaikan</label><textarea rows="2" required id="k_tind">${escapeHtml(item?.tindakanPerbaikan || '')}</textarea></div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveInc(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('inc'), year: selectedYear,
+        tanggal: document.getElementById('k_tgl').value,
+        kategori: document.getElementById('k_kat').value,
+        unitKerja: document.getElementById('k_unit').value.trim(),
+        hariHilang: Number(document.getElementById('k_hl').value) || 0,
+        deskripsi: document.getElementById('k_desc').value.trim(),
+        tindakanPerbaikan: document.getElementById('k_tind').value.trim(),
+      };
+      if (id) getData().k3Incidents = getData().k3Incidents.map((x) => x.id === id ? obj : x);
+      else getData().k3Incidents.unshift(obj);
+      saveState(); closeModal(); render();
+    }
+    function delInc(id) { getData().k3Incidents = getData().k3Incidents.filter((x) => x.id !== id); saveState(); render(); }
+
+    // 03 Pelatihan
+    function openTrModal(id) {
+      const item = id ? getData().trainings.find((t) => t.id === id) : null;
+      const jabs = ['Direksi & Eksekutif', 'Manajer', 'Supervisor & Superintendent', 'Staf & Analis', 'Operator & Teknisi'];
+      const kats = ['K3 & Keselamatan', 'Teknis & Operasional', 'Kepemimpinan & Manajemen', 'ESG & Lingkungan', 'Digital & Tata Kelola'];
+      openModal(item ? 'Edit Pelatihan' : 'Tambah Pelatihan Karyawan', `
+        <form onsubmit="saveTr(event, '${id || ''}')">
+          <div class="field"><label>Nama Pelatihan</label><input required id="t_nama" value="${escapeHtml(item?.namaPelatihan || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Jenjang Jabatan</label><select id="t_jab">${jabs.map((j) => `<option ${item?.jabatan===j?'selected':''}>${j}</option>`).join('')}</select></div>
+            <div class="field"><label>Kategori</label><select id="t_kat">${kats.map((k) => `<option ${item?.kategori===k?'selected':''}>${k}</option>`).join('')}</select></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Jumlah Peserta</label><input type="number" min="1" required id="t_pes" value="${item?.jumlahPeserta ?? 25}" /></div>
+            <div class="field"><label>Durasi (Jam/Peserta)</label><input type="number" min="1" required id="t_dur" value="${item?.durasiJamPerPeserta ?? 8}" /></div>
+          </div>
+          <div class="field"><label>Penyelenggara</label><input required id="t_pen" value="${escapeHtml(item?.penyelenggara || '')}" /></div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveTr(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('tr'), year: selectedYear,
+        namaPelatihan: document.getElementById('t_nama').value.trim(),
+        jabatan: document.getElementById('t_jab').value,
+        kategori: document.getElementById('t_kat').value,
+        jumlahPeserta: Number(document.getElementById('t_pes').value) || 0,
+        durasiJamPerPeserta: Number(document.getElementById('t_dur').value) || 0,
+        penyelenggara: document.getElementById('t_pen').value.trim(),
+      };
+      if (id) getData().trainings = getData().trainings.map((x) => x.id === id ? obj : x);
+      else getData().trainings.unshift(obj);
+      saveState(); closeModal(); render();
+    }
+    function delTr(id) { getData().trainings = getData().trainings.filter((x) => x.id !== id); saveState(); render(); }
+
+    // 04 SDM
+    function openSdmRowModal(idx) {
+      const wf = getData().workforce[selectedYear];
+      const r = idx !== null && idx !== undefined ? wf.jabatan[idx] : null;
+      openModal(r ? `Edit SDM: ${r.jabatan}` : 'Tambah Baris Jabatan SDM', `
+        <form onsubmit="saveSdmRow(event, ${idx !== null && idx !== undefined ? idx : -1})">
+          <div class="field"><label>Nama Jenjang Jabatan</label><input required id="s_jab" value="${escapeHtml(r?.jabatan || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Laki-laki</label><input type="number" min="0" required id="s_l" value="${r?.lakiLaki ?? 0}" /></div>
+            <div class="field"><label>Perempuan</label><input type="number" min="0" required id="s_p" value="${r?.perempuan ?? 0}" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Tetap (PKWTT)</label><input type="number" min="0" required id="s_t" value="${r?.tetap ?? 0}" /></div>
+            <div class="field"><label>Kontrak (PKWT)</label><input type="number" min="0" required id="s_k" value="${r?.kontrak ?? 0}" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Lokal (TKI)</label><input type="number" min="0" required id="s_lok" value="${r?.lokal ?? 0}" /></div>
+            <div class="field"><label>Tenaga Kerja Asing (TKA)</label><input type="number" min="0" required id="s_tka" value="${r?.tka ?? 0}" /></div>
+          </div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveSdmRow(e, idx) {
+      e.preventDefault();
+      const wf = getData().workforce[selectedYear];
+      const obj = {
+        jabatan: document.getElementById('s_jab').value.trim(),
+        lakiLaki: Number(document.getElementById('s_l').value) || 0,
+        perempuan: Number(document.getElementById('s_p').value) || 0,
+        tetap: Number(document.getElementById('s_t').value) || 0,
+        kontrak: Number(document.getElementById('s_k').value) || 0,
+        lokal: Number(document.getElementById('s_lok').value) || 0,
+        tka: Number(document.getElementById('s_tka').value) || 0,
+      };
+      if (idx >= 0) wf.jabatan[idx] = obj; else wf.jabatan.push(obj);
+      const tot = getWfTotals(wf);
+      wf.lokalRing1 = Math.min(wf.lokalRing1, tot.lokal);
+      wf.lokalNasional = Math.max(0, tot.lokal - wf.lokalRing1);
+      wf.tka = tot.tka;
+      saveState(); closeModal(); render();
+    }
+    function delSdmRow(idx) {
+      const wf = getData().workforce[selectedYear];
+      wf.jabatan.splice(idx, 1);
+      saveState(); render();
+    }
+
+    // 05 Energi
+    function updateEnergyInline(id, val) {
+      const entry = getData().energyEntries.find((e) => e.id === id);
+      if (entry) { entry.konsumsiAsli = Number(val) || 0; saveState(); render(); }
+    }
+    function openEnergyModal(id) {
+      const item = id ? getData().energyEntries.find((e) => e.id === id) : null;
+      const cats = ['Listrik Grid', 'Energi Terbarukan', 'Bahan Bakar Fosil'];
+      const units = ['kWh', 'Ton', 'Liter', 'MMBTU'];
+      openModal(item ? 'Edit Sumber Energi' : 'Tambah Sumber Energi', `
+        <form onsubmit="saveEnergy(event, '${id || ''}')">
+          <div class="field"><label>Nama Sumber Energi</label><input required id="e_sum" value="${escapeHtml(item?.sumber || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Kategori</label><select id="e_kat">${cats.map((c) => `<option ${item?.kategori===c?'selected':''}>${c}</option>`).join('')}</select></div>
+            <div class="field"><label>Unit Fisik</label><select id="e_unit">${units.map((u) => `<option ${item?.unitAsli===u?'selected':''}>${u}</option>`).join('')}</select></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Konsumsi Fisik</label><input type="number" step="any" min="0" required id="e_kon" value="${item?.konsumsiAsli ?? 0}" /></div>
+            <div class="field"><label>Faktor Konversi ke GJ</label><input type="number" step="any" min="0" required id="e_gj" value="${item?.faktorKonversiGJ ?? 0.0036}" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Faktor Emisi (tCO2e/GJ)</label><input type="number" step="any" min="0" required id="e_em" value="${item?.faktorEmisiTonCO2ePerGJ ?? 0}" /></div>
+            <div class="field"><label>Catatan</label><input id="e_cat" value="${escapeHtml(item?.catatanFaktor || '')}" /></div>
+          </div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveEnergy(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('en'), year: selectedYear,
+        sumber: document.getElementById('e_sum').value.trim(),
+        kategori: document.getElementById('e_kat').value,
+        unitAsli: document.getElementById('e_unit').value,
+        konsumsiAsli: Number(document.getElementById('e_kon').value) || 0,
+        faktorKonversiGJ: Number(document.getElementById('e_gj').value) || 0,
+        faktorEmisiTonCO2ePerGJ: Number(document.getElementById('e_em').value) || 0,
+        catatanFaktor: document.getElementById('e_cat').value.trim(),
+      };
+      if (id) getData().energyEntries = getData().energyEntries.map((x) => x.id === id ? obj : x);
+      else getData().energyEntries.push(obj);
+      saveState(); closeModal(); render();
+    }
+    function delEnergy(id) { getData().energyEntries = getData().energyEntries.filter((x) => x.id !== id); saveState(); render(); }
+
+    // 06 Lingkungan
+    function openEnvSummaryModal() {
+      const ev = getData().environment[selectedYear];
+      openModal(`Ubah Data Air, Scope 3 & Hayati (${selectedYear})`, `
+        <form onsubmit="saveEnvSummary(event)">
+          <div class="grid-2">
+            <div class="field"><label>Air Tanah (m3)</label><input type="number" min="0" id="ev_at" value="${ev.air.airTanahM3}" /></div>
+            <div class="field"><label>PDAM (m3)</label><input type="number" min="0" id="ev_pdam" value="${ev.air.pdamM3}" /></div>
+            <div class="field"><label>Air Permukaan (m3)</label><input type="number" min="0" id="ev_ap" value="${ev.air.airPermukaanM3}" /></div>
+            <div class="field"><label>Air Daur Ulang (m3)</label><input type="number" min="0" id="ev_du" value="${ev.air.airDaurUlangM3}" /></div>
+            <div class="field"><label>Emisi Scope 3 (tCO2e)</label><input type="number" min="0" id="ev_s3" value="${ev.emisiScope3TonCO2e}" /></div>
+            <div class="field"><label>Area Konservasi (Ha)</label><input type="number" step="0.1" min="0" id="ev_kon" value="${ev.hayati.luasanKonservasiHa}" /></div>
+            <div class="field"><label>Area Rehabilitasi (Ha)</label><input type="number" step="0.1" min="0" id="ev_reh" value="${ev.hayati.luasanRehabilitasiHa}" /></div>
+            <div class="field"><label>RTH Pabrik (Ha)</label><input type="number" step="0.1" min="0" id="ev_rth" value="${ev.hayati.luasanRthPabrikHa}" /></div>
+          </div>
+          <div class="field"><label>Jumlah Pohon Tertanam</label><input type="number" min="0" id="ev_poh" value="${ev.hayati.jumlahPohonTertanam}" /></div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveEnvSummary(e) {
+      e.preventDefault();
+      const ev = getData().environment[selectedYear];
+      ev.air = {
+        airTanahM3: Number(document.getElementById('ev_at').value) || 0,
+        pdamM3: Number(document.getElementById('ev_pdam').value) || 0,
+        airPermukaanM3: Number(document.getElementById('ev_ap').value) || 0,
+        airDaurUlangM3: Number(document.getElementById('ev_du').value) || 0,
+      };
+      ev.emisiScope3TonCO2e = Number(document.getElementById('ev_s3').value) || 0;
+      ev.hayati = {
+        luasanKonservasiHa: Number(document.getElementById('ev_kon').value) || 0,
+        luasanRehabilitasiHa: Number(document.getElementById('ev_reh').value) || 0,
+        luasanRthPabrikHa: Number(document.getElementById('ev_rth').value) || 0,
+        jumlahPohonTertanam: Number(document.getElementById('ev_poh').value) || 0,
+      };
+      saveState(); closeModal(); render();
+    }
+    function openWasteModal(type, id) {
+      const ev = getData().environment[selectedYear];
+      const list = type === 'B3' ? ev.limbahB3 : ev.limbahNonB3;
+      const item = id ? list.find((w) => w.id === id) : null;
+      openModal(`${item ? 'Edit' : 'Tambah'} Limbah ${type}`, `
+        <form onsubmit="saveWaste(event, '${type}', '${id || ''}')">
+          <div class="field"><label>Jenis Limbah</label><input required id="w_jen" value="${escapeHtml(item?.jenis || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Jumlah (Ton)</label><input type="number" step="0.1" min="0" required id="w_ton" value="${item?.jumlahTon ?? 0}" /></div>
+            <div class="field"><label>${type === 'B3' ? 'Kode Limbah B3' : 'Metode Pengelolaan'}</label><input required id="w_m" value="${escapeHtml(type === 'B3' ? (item?.kodeLimbah || 'B105d') : (item?.metodeKelola || ''))}" /></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>${type === 'B3' ? 'Pengelola Berizin' : 'Daur Ulang (%)'}</label><input ${type==='Non-B3'?'type="number" min="0" max="100"':''} required id="w_p" value="${escapeHtml(type === 'B3' ? (item?.pengelolaBerizin || '') : (item?.persentaseDaurUlang ?? 80))}" /></div>
+            ${type === 'B3' ? `<div class="field"><label>Status Manifest</label><select id="w_st"><option ${item?.statusManifest==='Manifest SIRAJA Lengkap'?'selected':''}>Manifest SIRAJA Lengkap</option><option ${item?.statusManifest==='Dalam Proses Pengangkutan'?'selected':''}>Dalam Proses Pengangkutan</option></select></div>` : '<div></div>'}
+          </div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveWaste(e, type, id) {
+      e.preventDefault();
+      const ev = getData().environment[selectedYear];
+      if (type === 'B3') {
+        const obj = {
+          id: id || uid('b3'), jenis: document.getElementById('w_jen').value.trim(),
+          jumlahTon: Number(document.getElementById('w_ton').value) || 0,
+          kodeLimbah: document.getElementById('w_m').value.trim(),
+          pengelolaBerizin: document.getElementById('w_p').value.trim(),
+          statusManifest: document.getElementById('w_st').value,
+        };
+        if (id) ev.limbahB3 = ev.limbahB3.map((x) => x.id === id ? obj : x);
+        else ev.limbahB3.push(obj);
+      } else {
+        const obj = {
+          id: id || uid('nb3'), jenis: document.getElementById('w_jen').value.trim(),
+          jumlahTon: Number(document.getElementById('w_ton').value) || 0,
+          metodeKelola: document.getElementById('w_m').value.trim(),
+          persentaseDaurUlang: Number(document.getElementById('w_p').value) || 0,
+        };
+        if (id) ev.limbahNonB3 = ev.limbahNonB3.map((x) => x.id === id ? obj : x);
+        else ev.limbahNonB3.push(obj);
+      }
+      saveState(); closeModal(); render();
+    }
+    function delWaste(type, id) {
+      const ev = getData().environment[selectedYear];
+      if (type === 'B3') ev.limbahB3 = ev.limbahB3.filter((x) => x.id !== id);
+      else ev.limbahNonB3 = ev.limbahNonB3.filter((x) => x.id !== id);
+      saveState(); render();
+    }
+
+    // 07 Pemasaran
+    function openMarketModal(side, id) {
+      const mkt = getData().marketing[selectedYear];
+      const list = side === 'LN' ? mkt.ln : mkt.dn;
+      const item = id ? list.find((x) => x.id === id) : null;
+      openModal(`${item ? 'Edit' : 'Tambah'} Pasar ${side === 'LN' ? 'Luar Negeri (LN)' : 'Dalam Negeri (DN)'}`, `
+        <form onsubmit="saveMarket(event, '${side}', '${id || ''}')">
+          <div class="field"><label>${side === 'LN' ? 'Negara / Kawasan Ekspor' : 'Wilayah Domestik'}</label><input required id="m_wil" value="${escapeHtml(item?.wilayah || '')}" /></div>
+          <div class="field"><label>Segmen Produk</label><input required id="m_seg" value="${escapeHtml(item?.segmen || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Volume (Ton)</label><input type="number" min="0" required id="m_vol" value="${item?.volumeTon ?? 0}" /></div>
+            <div class="field"><label>Pendapatan (Rp Miliar)</label><input type="number" step="0.1" min="0" required id="m_rev" value="${item?.pendapatanMiliarRp ?? 0}" /></div>
+          </div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveMarket(e, side, id) {
+      e.preventDefault();
+      const mkt = getData().marketing[selectedYear];
+      const obj = {
+        id: id || uid('mkt'), wilayah: document.getElementById('m_wil').value.trim(),
+        segmen: document.getElementById('m_seg').value.trim(),
+        volumeTon: Number(document.getElementById('m_vol').value) || 0,
+        pendapatanMiliarRp: Number(document.getElementById('m_rev').value) || 0,
+      };
+      if (side === 'LN') mkt.ln = id ? mkt.ln.map((x) => x.id === id ? obj : x) : [...mkt.ln, obj];
+      else mkt.dn = id ? mkt.dn.map((x) => x.id === id ? obj : x) : [...mkt.dn, obj];
+      saveState(); closeModal(); render();
+    }
+    function delMarket(side, id) {
+      const mkt = getData().marketing[selectedYear];
+      if (side === 'LN') mkt.ln = mkt.ln.filter((x) => x.id !== id);
+      else mkt.dn = mkt.dn.filter((x) => x.id !== id);
+      saveState(); render();
+    }
+
+    // 08 Supply Chain
+    function openScModal(id) {
+      const item = id ? getData().supplyChain.find((s) => s.id === id) : null;
+      const cats = ['UMKM Lokal (Ring-1)', 'Korporasi Lokal Daerah', 'Pemasok Nasional', 'Pemasok Internasional'];
+      openModal(item ? 'Edit Pemasok' : 'Tambah Kategori Pemasok', `
+        <form onsubmit="saveSc(event, '${id || ''}')">
+          <div class="field"><label>Kategori Pemasok</label><select id="sc_kat">${cats.map((c) => `<option ${item?.kategoriPemasok===c?'selected':''}>${c}</option>`).join('')}</select></div>
+          <div class="field"><label>Jenis Komoditas</label><input required id="sc_kom" value="${escapeHtml(item?.jenisKomoditas || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Jumlah Pemasok</label><input type="number" min="1" required id="sc_jml" value="${item?.jumlahPemasok ?? 10}" /></div>
+            <div class="field"><label>Nilai Pengadaan (Rp Miliar)</label><input type="number" step="0.1" min="0" required id="sc_nil" value="${item?.nilaiPengadaanMiliarRp ?? 50}" /></div>
+            <div class="field"><label>Lolos Screening ESG (%)</label><input type="number" min="0" max="100" required id="sc_esg" value="${item?.persentaseLolosScreeningESG ?? 90}" /></div>
+            <div class="field"><label>Rata-rata TKDN (%)</label><input type="number" min="0" max="100" required id="sc_tkdn" value="${item?.rataRataTkdnPersen ?? 75}" /></div>
+          </div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveSc(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('sc'), year: selectedYear,
+        kategoriPemasok: document.getElementById('sc_kat').value,
+        jenisKomoditas: document.getElementById('sc_kom').value.trim(),
+        jumlahPemasok: Number(document.getElementById('sc_jml').value) || 0,
+        nilaiPengadaanMiliarRp: Number(document.getElementById('sc_nil').value) || 0,
+        persentaseLolosScreeningESG: Number(document.getElementById('sc_esg').value) || 0,
+        rataRataTkdnPersen: Number(document.getElementById('sc_tkdn').value) || 0,
+      };
+      if (id) getData().supplyChain = getData().supplyChain.map((x) => x.id === id ? obj : x);
+      else getData().supplyChain.push(obj);
+      saveState(); closeModal(); render();
+    }
+    function delSc(id) { getData().supplyChain = getData().supplyChain.filter((x) => x.id !== id); saveState(); render(); }
+
+    // 09 Sertifikasi
+    function openCertModal(id) {
+      const item = id ? getData().certifications.find((c) => c.id === id) : null;
+      openModal(item ? 'Edit Sertifikasi / Award' : 'Tambah Sertifikasi / Penghargaan', `
+        <form onsubmit="saveCert(event, '${id || ''}')">
+          <div class="grid-2">
+            <div class="field"><label>Tipe</label><select id="ce_tip"><option ${item?.tipe==='Sertifikasi'?'selected':''}>Sertifikasi</option><option ${item?.tipe==='Penghargaan'?'selected':''}>Penghargaan</option></select></div>
+            <div class="field"><label>Status</label><select id="ce_st"><option ${item?.status==='Aktif'?'selected':''}>Aktif</option><option ${item?.status==='Dalam Perpanjangan'?'selected':''}>Dalam Perpanjangan</option><option ${item?.status==='Diterima'?'selected':''}>Diterima</option></select></div>
+          </div>
+          <div class="field"><label>Nama Sertifikasi / Penghargaan</label><input required id="ce_nam" value="${escapeHtml(item?.nama || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Nomor Sertifikat / SK</label><input required id="ce_no" value="${escapeHtml(item?.nomorSertifikat || '')}" /></div>
+            <div class="field"><label>Lembaga Penerbit</label><input required id="ce_lem" value="${escapeHtml(item?.lembagaPenerbit || '')}" /></div>
+            <div class="field"><label>Ruang Lingkup</label><input required id="ce_rl" value="${escapeHtml(item?.ruangLingkup || '')}" /></div>
+            <div class="field"><label>Masa Berlaku</label><input required id="ce_mb" value="${escapeHtml(item?.masaBerlaku || '')}" /></div>
+          </div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveCert(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('cert'), year: selectedYear,
+        tipe: document.getElementById('ce_tip').value,
+        status: document.getElementById('ce_st').value,
+        nama: document.getElementById('ce_nam').value.trim(),
+        nomorSertifikat: document.getElementById('ce_no').value.trim(),
+        lembagaPenerbit: document.getElementById('ce_lem').value.trim(),
+        ruangLingkup: document.getElementById('ce_rl').value.trim(),
+        masaBerlaku: document.getElementById('ce_mb').value.trim(),
+      };
+      if (id) getData().certifications = getData().certifications.map((x) => x.id === id ? obj : x);
+      else getData().certifications.unshift(obj);
+      saveState(); closeModal(); render();
+    }
+    function delCert(id) { getData().certifications = getData().certifications.filter((x) => x.id !== id); saveState(); render(); }
+
+    // 10 Asosiasi
+    function openAsoModal(id) {
+      const item = id ? getData().associations.find((a) => a.id === id) : null;
+      openModal(item ? 'Edit Keanggotaan Asosiasi' : 'Tambah Keanggotaan Asosiasi', `
+        <form onsubmit="saveAso(event, '${id || ''}')">
+          <div class="grid-2">
+            <div class="field"><label>Singkatan</label><input required id="a_sing" value="${escapeHtml(item?.singkatan || '')}" /></div>
+            <div class="field"><label>Tahun Bergabung</label><input type="number" min="1950" max="2030" required id="a_thn" value="${item?.tahunBergabung ?? 2022}" /></div>
+          </div>
+          <div class="field"><label>Nama Lengkap Asosiasi</label><input required id="a_nam" value="${escapeHtml(item?.namaAsosiasi || '')}" /></div>
+          <div class="grid-2">
+            <div class="field"><label>Tingkat</label><select id="a_ting"><option ${item?.tingkat==='Daerah'?'selected':''}>Daerah</option><option ${item?.tingkat==='Nasional'?'selected':''}>Nasional</option><option ${item?.tingkat==='Internasional'?'selected':''}>Internasional</option></select></div>
+            <div class="field"><label>Peran</label><select id="a_per"><option ${item?.peran==='Anggota Aktif'?'selected':''}>Anggota Aktif</option><option ${item?.peran==='Pengurus / Dewan'?'selected':''}>Pengurus / Dewan</option><option ${item?.peran==='Komite Teknis ESG'?'selected':''}>Komite Teknis ESG</option></select></div>
+          </div>
+          <div class="field"><label>Bidang Fokus</label><input required id="a_fok" value="${escapeHtml(item?.bidangFokus || '')}" /></div>
+          <div class="modal-foot"><button type="button" class="btn btn-soft" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+        </form>
+      `);
+    }
+    function saveAso(e, id) {
+      e.preventDefault();
+      const obj = {
+        id: id || uid('aso'), year: selectedYear,
+        singkatan: document.getElementById('a_sing').value.trim(),
+        tahunBergabung: Number(document.getElementById('a_thn').value) || 2022,
+        namaAsosiasi: document.getElementById('a_nam').value.trim(),
+        tingkat: document.getElementById('a_ting').value,
+        peran: document.getElementById('a_per').value,
+        bidangFokus: document.getElementById('a_fok').value.trim(),
+      };
+      if (id) getData().associations = getData().associations.map((x) => x.id === id ? obj : x);
+      else getData().associations.push(obj);
+      saveState(); closeModal(); render();
+    }
+    function delAso(id) { getData().associations = getData().associations.filter((x) => x.id !== id); saveState(); render(); }
+
+    // ==================== RENDER ENGINE ====================
+    function renderSection() {
+      const d = getData();
+      const yr = selectedYear;
+
+      if (activeSection === 'overview') {
+        const csrTot = d.csrPrograms.filter((p) => p.year === yr).reduce((a, b) => a + b.realisasiRp, 0);
+        const k3s = d.k3Summaries[yr];
+        const tsir = calcTSIR(k3s);
+        const wfTot = getWfTotals(d.workforce[yr]);
+        const trHours = d.trainings.filter((t) => t.year === yr).reduce((a, b) => a + b.jumlahPeserta * b.durasiJamPerPeserta, 0);
+        const enYr = d.energyEntries.filter((e) => e.year === yr);
+        const totGJ = enYr.reduce((a, b) => a + calcGJ(b), 0);
+        const totEmisi = enYr.reduce((a, b) => a + calcEmisi(b), 0);
+        const ev = d.environment[yr];
+        const hayatiHa = ev.hayati.luasanKonservasiHa + ev.hayati.luasanRehabilitasiHa + ev.hayati.luasanRthPabrikHa;
+        const mkt = d.marketing[yr];
+        const revTot = [...mkt.dn, ...mkt.ln].reduce((a, b) => a + b.pendapatanMiliarRp, 0);
+        const scTot = d.supplyChain.filter((s) => s.year === yr).reduce((a, b) => a + b.jumlahPemasok, 0);
+
+        return `
+          <div class="card">
+            <div class="eyebrow">TAHUN BUKU ${yr} · ${escapeHtml(d.company.standarAcuan)}</div>
+            <h1 style="margin-top:4px;">Laporan Keberlanjutan ${escapeHtml(d.company.namaPerusahaan)}</h1>
+            <p class="subtitle">${escapeHtml(d.company.ringkasanDireksi)}</p>
+            <div style="margin-top:10px;font-size:12px;color:#57534E;">
+              <strong>${escapeHtml(d.company.sektorUsaha)}</strong> · ${escapeHtml(d.company.lokasiOperasional)} · Produksi ${yr}: <span class="mono">${fmtNum(d.company.volumeProduksiTon[yr])} Ton</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;" class="no-print">
+              <button class="btn btn-primary" onclick="exportActiveToExcel()">Simpan LocalStorage ke Excel (.xlsx)</button>
+              <label class="btn btn-secondary" style="cursor:pointer;">Impor Excel (.xlsx)<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelImport(event)" /></label>
+              <button class="btn btn-soft" onclick="openProfileModal()">Ganti Profil Perusahaan</button>
+              <button class="btn btn-soft" onclick="openCompanyEditModal()">Edit Identitas Profil</button>
+            </div>
+          </div>
+
+          <div class="grid-4">
+            <div class="card"><div class="kpi-label">Realisasi Dana CSR (${yr})</div><div class="kpi-val tone-positive">${fmtIDR(csrTot)}</div><div class="kpi-sub">${d.csrPrograms.filter((p)=>p.year===yr).length} program</div></div>
+            <div class="card"><div class="kpi-label">TSIR Keselamatan (${yr})</div><div class="kpi-val ${tsir<=0.15?'tone-positive':'tone-warning'}">${tsir.toFixed(2)}</div><div class="kpi-sub">${fmtNum(k3s.jamKerjaZeroAccidentKumulatif)} jam Zero Accident</div></div>
+            <div class="card"><div class="kpi-label">Total Konsumsi Energi (${yr})</div><div class="kpi-val">${fmtNum(totGJ)} GJ</div><div class="kpi-sub">Emisi Scope 1 & 2: ${fmtNum(totEmisi)} tCO₂e</div></div>
+            <div class="card"><div class="kpi-label">Tenaga Kerja (${yr})</div><div class="kpi-val">${fmtNum(wfTot.total)} Org</div><div class="kpi-sub">Pelatihan: ${fmtNum(trHours)} jam · Area Hayati: ${fmtNum(hayatiHa,1)} Ha</div></div>
+          </div>
+
+          <div class="grid-3">
+            ${[
+              ['csr', '01. CSR & Komunitas', fmtIDR(csrTot)],
+              ['k3', '02. K3 & Kalkulator TSIR', `TSIR ${tsir.toFixed(2)}`],
+              ['pelatihan', '03. Pelatihan Karyawan', `${fmtNum(trHours)} Jam`],
+              ['sdm', '04. Kinerja Sosial & SDM', `${fmtNum(wfTot.total)} Karyawan`],
+              ['energi', '05. Konsumsi Energi', `${fmtNum(totGJ)} GJ`],
+              ['lingkungan', '06. Lingkungan & Hayati', `${fmtNum(hayatiHa, 1)} Ha`],
+              ['pemasaran', '07. Pemasaran (DN & LN)', `Rp ${fmtNum(revTot)} M`],
+              ['supply', '08. Rantai Pasok', `${fmtNum(scTot)} Pemasok`],
+              ['sertifikasi', '09. Sertifikasi & Award', `${d.certifications.length} Dokumen`],
+              ['asosiasi', '10. Keanggotaan Asosiasi', `${d.associations.length} Organisasi`],
+            ].map(([id, title, val]) => `
+              <button class="card" style="text-align:left;cursor:pointer;" onclick="setSection('${id}')">
+                <div style="font-size:12px;color:#14532D;font-weight:700;">${title} →</div>
+                <div class="mono" style="font-size:19px;font-weight:600;margin-top:6px;">${val}</div>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      if (activeSection === 'csr') {
+        const list = d.csrPrograms.filter((p) => p.year === yr);
+        const totReal = list.reduce((a, b) => a + b.realisasiRp, 0);
+        const totAng = list.reduce((a, b) => a + b.anggaranRp, 0);
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">01 / CSR & PENGEMBANGAN KOMUNITAS</div><h1>Penyaluran Dana & Program CSR (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openCsrModal(null)">+ Tambah Program CSR</button>
+          </div>
+          <div class="grid-3">
+            <div class="card"><div class="kpi-label">Total Realisasi (${yr})</div><div class="kpi-val tone-positive">${fmtIDR(totReal)}</div></div>
+            <div class="card"><div class="kpi-label">Total Anggaran (${yr})</div><div class="kpi-val">${fmtIDR(totAng)}</div></div>
+            <div class="card"><div class="kpi-label">Jumlah Program</div><div class="kpi-val">${list.length}</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Program</th><th>Pilar</th><th>Lokasi</th><th class="num">Anggaran</th><th class="num">Realisasi</th><th class="num">Penerima</th><th>Status</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${list.map((p) => `
+                    <tr>
+                      <td><strong>${escapeHtml(p.namaProgram)}</strong></td>
+                      <td>${escapeHtml(p.pilar)}</td>
+                      <td>${escapeHtml(p.lokasi)}</td>
+                      <td class="num">${fmtIDR(p.anggaranRp)}</td>
+                      <td class="num tone-positive"><strong>${fmtIDR(p.realisasiRp)}</strong></td>
+                      <td class="num">${fmtNum(p.penerimaManfaat)} ${escapeHtml(p.satuanPenerima)}</td>
+                      <td>${escapeHtml(p.status)}</td>
+                      <td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openCsrModal('${p.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delCsr('${p.id}')">Hapus</button></td>
+                    </tr>
+                  `).join('') || '<tr><td colspan="8" style="text-align:center;color:#78716C;padding:24px;">Belum ada data CSR pada tahun ini.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'k3') {
+        const s = d.k3Summaries[yr];
+        const tsir = calcTSIR(s);
+        const list = d.k3Incidents.filter((i) => i.year === yr);
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">02 / KESELAMATAN & KESEHATAN KERJA</div><h1>Data Kecelakaan, Zero Accident & Kalkulator TSIR (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openIncModal(null)">+ Tambah Log Insiden</button>
+          </div>
+          <div class="grid-4">
+            <div class="card"><div class="kpi-label">TSIR Terhitung</div><div class="kpi-val ${tsir<=0.15?'tone-positive':'tone-warning'}">${tsir.toFixed(3)}</div><div class="kpi-sub">per ${fmtNum(s.basisPerhitungan)} jam</div></div>
+            <div class="card"><div class="kpi-label">Zero Accident Kumulatif</div><div class="kpi-val tone-positive">${fmtNum(s.jamKerjaZeroAccidentKumulatif)}</div><div class="kpi-sub">Jam kerja selamat</div></div>
+            <div class="card"><div class="kpi-label">LTI / Fatality</div><div class="kpi-val">${s.lti} / ${s.fatality}</div><div class="kpi-sub">Hari hilang: ${s.hariHilang}</div></div>
+            <div class="card"><div class="kpi-label">Tenaga Kerja Tercakup</div><div class="kpi-val">${fmtNum(s.jumlahTenagaKerja)}</div><div class="kpi-sub">Jam kerja tahunan: ${fmtNum(s.jamKerjaSelamat)}</div></div>
+          </div>
+          <div class="card">
+            <h2>Parameter Kalkulasi TSIR & Zero Accident (${yr})</h2>
+            <p class="subtitle" style="margin-bottom:14px;">TSIR = ((MTC + RWC + LTI + Fatality) × Basis Jam) ÷ Total Jam Kerja Selamat. Ubah angka untuk menghitung otomatis:</p>
+            <div class="grid-4">
+              <div class="field"><label>Jam Kerja Selamat (${yr})</label><input type="number" min="1" value="${s.jamKerjaSelamat}" onchange="updateK3Field('jamKerjaSelamat', this.value)" /></div>
+              <div class="field"><label>Zero Accident Kumulatif</label><input type="number" min="0" value="${s.jamKerjaZeroAccidentKumulatif}" onchange="updateK3Field('jamKerjaZeroAccidentKumulatif', this.value)" /></div>
+              <div class="field"><label>Basis Perhitungan</label><select onchange="updateK3Field('basisPerhitungan', this.value)"><option value="200000" ${s.basisPerhitungan===200000?'selected':''}>200.000 (OSHA)</option><option value="1000000" ${s.basisPerhitungan===1000000?'selected':''}>1.000.000 (IOGP)</option></select></div>
+              <div class="field"><label>Medical Treatment (MTC)</label><input type="number" min="0" value="${s.medicalTreatment}" onchange="updateK3Field('medicalTreatment', this.value)" /></div>
+              <div class="field"><label>Restricted Work (RWC)</label><input type="number" min="0" value="${s.restrictedWork}" onchange="updateK3Field('restrictedWork', this.value)" /></div>
+              <div class="field"><label>Lost Time Injury (LTI)</label><input type="number" min="0" value="${s.lti}" onchange="updateK3Field('lti', this.value)" /></div>
+              <div class="field"><label>Fatality</label><input type="number" min="0" value="${s.fatality}" onchange="updateK3Field('fatality', this.value)" /></div>
+              <div class="field"><label>Near Miss</label><input type="number" min="0" value="${s.nearMiss}" onchange="updateK3Field('nearMiss', this.value)" /></div>
+            </div>
+            <div class="field" style="margin-bottom:0;"><label>Catatan Zero Accident</label><input value="${escapeHtml(s.catatanZeroAccident)}" onchange="updateK3Field('catatanZeroAccident', this.value)" /></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-head"><h2>Log Kejadian & Investigasi K3 (${yr})</h2></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Tanggal</th><th>Kategori</th><th>Unit Kerja</th><th>Deskripsi</th><th class="num">Hari Hilang</th><th>Tindakan Perbaikan</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${list.map((i) => `
+                    <tr>
+                      <td class="mono">${escapeHtml(i.tanggal)}</td>
+                      <td><strong>${escapeHtml(i.kategori)}</strong></td>
+                      <td>${escapeHtml(i.unitKerja)}</td>
+                      <td>${escapeHtml(i.deskripsi)}</td>
+                      <td class="num">${i.hariHilang}</td>
+                      <td>${escapeHtml(i.tindakanPerbaikan)}</td>
+                      <td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openIncModal('${i.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delInc('${i.id}')">Hapus</button></td>
+                    </tr>
+                  `).join('') || '<tr><td colspan="7" style="text-align:center;color:#78716C;padding:24px;">Tidak ada catatan insiden pada tahun ini.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'pelatihan') {
+        const list = d.trainings.filter((t) => t.year === yr);
+        const totHours = list.reduce((a, b) => a + b.jumlahPeserta * b.durasiJamPerPeserta, 0);
+        const wfTot = getWfTotals(d.workforce[yr]).total;
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">03 / PELATIHAN & PENGEMBANGAN SDM</div><h1>Pelatihan per Jenjang Jabatan & Total Jam (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openTrModal(null)">+ Tambah Pelatihan</button>
+          </div>
+          <div class="grid-3">
+            <div class="card"><div class="kpi-label">Total Jam Pelatihan</div><div class="kpi-val tone-positive">${fmtNum(totHours)} Jam</div></div>
+            <div class="card"><div class="kpi-label">Rata-rata Jam / Karyawan</div><div class="kpi-val">${(totHours / Math.max(wfTot, 1)).toFixed(1)} Jam</div></div>
+            <div class="card"><div class="kpi-label">Jumlah Program Pelatihan</div><div class="kpi-val">${list.length}</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Nama Pelatihan</th><th>Jenjang Jabatan</th><th>Kategori</th><th class="num">Peserta</th><th class="num">Durasi (Jam)</th><th class="num">Total Jam</th><th>Penyelenggara</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${list.map((t) => `
+                    <tr>
+                      <td><strong>${escapeHtml(t.namaPelatihan)}</strong></td>
+                      <td>${escapeHtml(t.jabatan)}</td>
+                      <td>${escapeHtml(t.kategori)}</td>
+                      <td class="num">${fmtNum(t.jumlahPeserta)}</td>
+                      <td class="num">${t.durasiJamPerPeserta}</td>
+                      <td class="num tone-positive"><strong>${fmtNum(t.jumlahPeserta * t.durasiJamPerPeserta)}</strong></td>
+                      <td>${escapeHtml(t.penyelenggara)}</td>
+                      <td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openTrModal('${t.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delTr('${t.id}')">Hapus</button></td>
+                    </tr>
+                  `).join('') || '<tr><td colspan="8" style="text-align:center;color:#78716C;padding:24px;">Belum ada pelatihan tercatat pada tahun ini.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'sdm') {
+        const wf = d.workforce[yr];
+        const tot = getWfTotals(wf);
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">04 / KINERJA SOSIAL & KETENAGAKERJAAN</div><h1>Komposisi Karyawan, Gender, Tetap/Kontrak & TKA/Lokal (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openSdmRowModal(null)">+ Tambah Jenjang Jabatan</button>
+          </div>
+          <div class="grid-4">
+            <div class="card"><div class="kpi-label">Total Karyawan</div><div class="kpi-val">${fmtNum(tot.total)} Org</div><div class="kpi-sub">Turnover: ${wf.tingkatTurnoverPersen}%</div></div>
+            <div class="card"><div class="kpi-label">Perempuan / Laki-laki</div><div class="kpi-val">${((tot.perempuan/Math.max(tot.total,1))*100).toFixed(1)}% P</div><div class="kpi-sub">${fmtNum(tot.perempuan)} P · ${fmtNum(tot.laki)} L</div></div>
+            <div class="card"><div class="kpi-label">Karyawan Tetap (PKWTT)</div><div class="kpi-val tone-positive">${((tot.tetap/Math.max(tot.total,1))*100).toFixed(1)}%</div><div class="kpi-sub">Tetap: ${fmtNum(tot.tetap)} · Kontrak: ${fmtNum(tot.kontrak)}</div></div>
+            <div class="card"><div class="kpi-label">Lokal (TKI) vs TKA</div><div class="kpi-val tone-positive">${((tot.lokal/Math.max(tot.total,1))*100).toFixed(1)}% Lokal</div><div class="kpi-sub">Lokal: ${fmtNum(tot.lokal)} · TKA: ${fmtNum(tot.tka)}</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Jenjang Jabatan</th><th class="num">Total</th><th class="num">Laki-laki</th><th class="num">Perempuan</th><th class="num">Tetap</th><th class="num">Kontrak</th><th class="num">Lokal</th><th class="num">TKA</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${(wf.jabatan || []).map((r, idx) => `
+                    <tr>
+                      <td><strong>${escapeHtml(r.jabatan)}</strong></td>
+                      <td class="num"><strong>${fmtNum(r.lakiLaki + r.perempuan)}</strong></td>
+                      <td class="num">${fmtNum(r.lakiLaki)}</td>
+                      <td class="num">${fmtNum(r.perempuan)}</td>
+                      <td class="num tone-positive">${fmtNum(r.tetap)}</td>
+                      <td class="num">${fmtNum(r.kontrak)}</td>
+                      <td class="num">${fmtNum(r.lokal)}</td>
+                      <td class="num">${fmtNum(r.tka)}</td>
+                      <td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openSdmRowModal(${idx})">Edit</button> <button class="btn btn-danger btn-sm" onclick="delSdmRow(${idx})">Hapus</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'energi') {
+        const list = d.energyEntries.filter((e) => e.year === yr);
+        const totGJ = list.reduce((a, b) => a + calcGJ(b), 0);
+        const renGJ = list.filter((e) => e.kategori === 'Energi Terbarukan').reduce((a, b) => a + calcGJ(b), 0);
+        const totEmisi = list.reduce((a, b) => a + calcEmisi(b), 0);
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">05 / KONSUMSI ENERGI (GIGAJOULE)</div><h1>Inventarisasi Energi Listrik, Batu Bara, Solar & EBT (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openEnergyModal(null)">+ Tambah Sumber Energi</button>
+          </div>
+          <div class="grid-3">
+            <div class="card"><div class="kpi-label">Total Energi</div><div class="kpi-val">${fmtNum(totGJ)} GJ</div></div>
+            <div class="card"><div class="kpi-label">Porsi Terbarukan (EBT)</div><div class="kpi-val tone-positive">${((renGJ/Math.max(totGJ,1))*100).toFixed(1)}%</div><div class="kpi-sub">${fmtNum(renGJ)} GJ</div></div>
+            <div class="card"><div class="kpi-label">Estimasi Emisi Scope 1 & 2</div><div class="kpi-val">${fmtNum(totEmisi)} tCO₂e</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Sumber Energi</th><th>Kategori</th><th class="num">Konsumsi Fisik (Edit)</th><th>Unit</th><th class="num">Faktor GJ</th><th class="num">Total (GJ)</th><th class="num">Emisi (tCO₂e)</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${list.map((e) => `
+                    <tr>
+                      <td><strong>${escapeHtml(e.sumber)}</strong></td>
+                      <td>${escapeHtml(e.kategori)}</td>
+                      <td class="num"><input type="number" step="any" class="inline-num" value="${e.konsumsiAsli}" onchange="updateEnergyInline('${e.id}', this.value)" /></td>
+                      <td>${escapeHtml(e.unitAsli)}</td>
+                      <td class="num">${e.faktorKonversiGJ}</td>
+                      <td class="num tone-positive"><strong>${fmtNum(calcGJ(e), 1)}</strong></td>
+                      <td class="num">${fmtNum(calcEmisi(e), 1)}</td>
+                      <td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openEnergyModal('${e.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delEnergy('${e.id}')">Hapus</button></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'lingkungan') {
+        const ev = d.environment[yr];
+        const totAir = ev.air.airTanahM3 + ev.air.pdamM3 + ev.air.airPermukaanM3 + ev.air.airDaurUlangM3;
+        const nb3Ton = ev.limbahNonB3.reduce((a, b) => a + b.jumlahTon, 0);
+        const b3Ton = ev.limbahB3.reduce((a, b) => a + b.jumlahTon, 0);
+        const hayatiHa = ev.hayati.luasanKonservasiHa + ev.hayati.luasanRehabilitasiHa + ev.hayati.luasanRthPabrikHa;
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">06 / PENGELOLAAN LINGKUNGAN</div><h1>Air, Limbah Non-B3 & B3, Emisi & Tanaman Hayati (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openEnvSummaryModal()">Ubah Data Air, Scope 3 & Hayati</button>
+          </div>
+          <div class="grid-4">
+            <div class="card"><div class="kpi-label">Total Air Digunakan</div><div class="kpi-val">${fmtNum(totAir)} m³</div><div class="kpi-sub">Daur ulang: ${fmtNum(ev.air.airDaurUlangM3)} m³</div></div>
+            <div class="card"><div class="kpi-label">Limbah Non-B3 / B3</div><div class="kpi-val">${fmtNum(nb3Ton,1)} / ${fmtNum(b3Ton,1)}</div><div class="kpi-sub">Satuan Ton</div></div>
+            <div class="card"><div class="kpi-label">Emisi Scope 3</div><div class="kpi-val">${fmtNum(ev.emisiScope3TonCO2e)}</div><div class="kpi-sub">tCO₂e</div></div>
+            <div class="card"><div class="kpi-label">Luasan Tanaman Hayati</div><div class="kpi-val tone-positive">${fmtNum(hayatiHa,1)} Ha</div><div class="kpi-sub">${fmtNum(ev.hayati.jumlahPohonTertanam)} pohon tertanam</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-head"><h2>Limbah Non-B3 (${yr})</h2><button class="btn btn-secondary btn-sm no-print" onclick="openWasteModal('Non-B3', null)">+ Tambah Non-B3</button></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Jenis Limbah</th><th class="num">Jumlah (Ton)</th><th>Metode Pengelolaan</th><th class="num">Daur Ulang (%)</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${ev.limbahNonB3.map((w) => `<tr><td><strong>${escapeHtml(w.jenis)}</strong></td><td class="num">${fmtNum(w.jumlahTon,1)}</td><td>${escapeHtml(w.metodeKelola)}</td><td class="num">${w.persentaseDaurUlang}%</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openWasteModal('Non-B3','${w.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delWaste('Non-B3','${w.id}')">Hapus</button></td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-head"><h2>Limbah B3 (${yr})</h2><button class="btn btn-secondary btn-sm no-print" onclick="openWasteModal('B3', null)">+ Tambah B3</button></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Jenis Limbah B3</th><th>Kode</th><th class="num">Jumlah (Ton)</th><th>Pengelola Berizin</th><th>Status Manifest</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${ev.limbahB3.map((w) => `<tr><td><strong>${escapeHtml(w.jenis)}</strong></td><td class="mono">${escapeHtml(w.kodeLimbah)}</td><td class="num">${fmtNum(w.jumlahTon,1)}</td><td>${escapeHtml(w.pengelolaBerizin)}</td><td>${escapeHtml(w.statusManifest)}</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openWasteModal('B3','${w.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delWaste('B3','${w.id}')">Hapus</button></td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'pemasaran') {
+        const mkt = d.marketing[yr];
+        const dnRev = mkt.dn.reduce((a, b) => a + b.pendapatanMiliarRp, 0);
+        const lnRev = mkt.ln.reduce((a, b) => a + b.pendapatanMiliarRp, 0);
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">07 / PEMASARAN PRODUK</div><h1>Distribusi Pasar Dalam Negeri (DN) & Luar Negeri (LN) (${yr})</h1></div>
+            <div style="display:flex;gap:8px;" class="no-print">
+              <button class="btn btn-secondary" onclick="openMarketModal('DN', null)">+ Tambah Pasar DN</button>
+              <button class="btn btn-primary" onclick="openMarketModal('LN', null)">+ Tambah Pasar LN</button>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="card"><div class="kpi-label">Pendapatan Domestik (DN)</div><div class="kpi-val tone-positive">Rp ${fmtNum(dnRev)} M</div></div>
+            <div class="card"><div class="kpi-label">Pendapatan Ekspor (LN)</div><div class="kpi-val">Rp ${fmtNum(lnRev)} M</div></div>
+            <div class="card"><div class="kpi-label">Kepuasan / Kepatuhan Label</div><div class="kpi-val">${mkt.indeksKepuasan}% / ${mkt.kepatuhanLabel}%</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="table-wrap">
+              <div class="table-head"><h2>Pasar Dalam Negeri (DN)</h2></div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Wilayah</th><th>Segmen</th><th class="num">Ton</th><th class="num">Rp M</th><th class="num no-print">Aksi</th></tr></thead>
+                  <tbody>${mkt.dn.map((m) => `<tr><td><strong>${escapeHtml(m.wilayah)}</strong></td><td>${escapeHtml(m.segmen)}</td><td class="num">${fmtNum(m.volumeTon)}</td><td class="num">${fmtNum(m.pendapatanMiliarRp)}</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openMarketModal('DN','${m.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delMarket('DN','${m.id}')">Hapus</button></td></tr>`).join('')}</tbody>
+                </table>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <div class="table-head"><h2>Pasar Luar Negeri (LN)</h2></div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Negara</th><th>Segmen</th><th class="num">Ton</th><th class="num">Rp M</th><th class="num no-print">Aksi</th></tr></thead>
+                  <tbody>${mkt.ln.map((m) => `<tr><td><strong>${escapeHtml(m.wilayah)}</strong></td><td>${escapeHtml(m.segmen)}</td><td class="num">${fmtNum(m.volumeTon)}</td><td class="num">${fmtNum(m.pendapatanMiliarRp)}</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openMarketModal('LN','${m.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delMarket('LN','${m.id}')">Hapus</button></td></tr>`).join('')}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'supply') {
+        const list = d.supplyChain.filter((s) => s.year === yr);
+        const totSup = list.reduce((a, b) => a + b.jumlahPemasok, 0);
+        const totVal = list.reduce((a, b) => a + b.nilaiPengadaanMiliarRp, 0);
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">08 / RANTAI PASOK (SUPPLY CHAIN)</div><h1>Jumlah Pemasok & Besaran Nilai Pengadaan (${yr})</h1></div>
+            <button class="btn btn-primary no-print" onclick="openScModal(null)">+ Tambah Pemasok</button>
+          </div>
+          <div class="grid-3">
+            <div class="card"><div class="kpi-label">Total Pemasok Terdaftar</div><div class="kpi-val">${fmtNum(totSup)}</div></div>
+            <div class="card"><div class="kpi-label">Total Nilai Pengadaan</div><div class="kpi-val tone-positive">Rp ${fmtNum(totVal)} M</div></div>
+            <div class="card"><div class="kpi-label">Kategori Rantai Pasok</div><div class="kpi-val">${list.length}</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Kategori Pemasok</th><th>Komoditas</th><th class="num">Pemasok</th><th class="num">Nilai (Rp M)</th><th class="num">ESG (%)</th><th class="num">TKDN (%)</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${list.map((s) => `<tr><td><strong>${escapeHtml(s.kategoriPemasok)}</strong></td><td>${escapeHtml(s.jenisKomoditas)}</td><td class="num">${fmtNum(s.jumlahPemasok)}</td><td class="num tone-positive"><strong>${fmtNum(s.nilaiPengadaanMiliarRp)}</strong></td><td class="num">${s.persentaseLolosScreeningESG}%</td><td class="num">${s.rataRataTkdnPersen}%</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openScModal('${s.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delSc('${s.id}')">Hapus</button></td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'sertifikasi') {
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">09 / PENGHARGAAN & SERTIFIKASI</div><h1>Sertifikasi ISO, SMK3, PROPER & Penghargaan</h1></div>
+            <button class="btn btn-primary no-print" onclick="openCertModal(null)">+ Tambah Sertifikasi / Award</button>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Tahun</th><th>Tipe</th><th>Nama Sertifikasi / Penghargaan</th><th>Nomor</th><th>Lembaga</th><th>Masa Berlaku</th><th>Status</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${d.certifications.map((c) => `<tr><td class="mono">${c.year}</td><td>${escapeHtml(c.tipe)}</td><td><strong>${escapeHtml(c.nama)}</strong></td><td class="mono">${escapeHtml(c.nomorSertifikat)}</td><td>${escapeHtml(c.lembagaPenerbit)}</td><td>${escapeHtml(c.masaBerlaku)}</td><td>${escapeHtml(c.status)}</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openCertModal('${c.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delCert('${c.id}')">Hapus</button></td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      if (activeSection === 'asosiasi') {
+        return `
+          <div class="section-head">
+            <div><div class="eyebrow">10 / KEANGGOTAAN ASOSIASI</div><h1>Partisipasi Organisasi Industri & Keberlanjutan</h1></div>
+            <button class="btn btn-primary no-print" onclick="openAsoModal(null)">+ Tambah Asosiasi</button>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Singkatan</th><th>Nama Asosiasi</th><th>Tingkat</th><th>Peran</th><th class="num">Sejak</th><th>Bidang Fokus</th><th class="num no-print">Aksi</th></tr></thead>
+                <tbody>
+                  ${d.associations.map((a) => `<tr><td><strong>${escapeHtml(a.singkatan)}</strong></td><td>${escapeHtml(a.namaAsosiasi)}</td><td>${escapeHtml(a.tingkat)}</td><td>${escapeHtml(a.peran)}</td><td class="num">${a.tahunBergabung}</td><td>${escapeHtml(a.bidangFokus)}</td><td class="num no-print"><button class="btn btn-soft btn-sm" onclick="openAsoModal('${a.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="delAso('${a.id}')">Hapus</button></td></tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      // 11. LocalStorage & Excel
+      const bytes = new Blob([localStorage.getItem(STORAGE_KEY) || '']).size;
+      return `
+        <div class="section-head">
+          <div><div class="eyebrow">PENYIMPANAN LOKAL & EXCEL</div><h1>Penyimpanan LocalStorage ke Excel (.xlsx Multi-Sheet)</h1><p class="subtitle">Seluruh data dari 10 pilar dan profil perusahaan tersimpan otomatis di localStorage browser, serta dapat diekspor maupun dimuat kembali menggunakan file Excel (.xlsx).</p></div>
+        </div>
+        <div class="grid-3">
+          <div class="card"><div class="kpi-label">Profil Tersimpan</div><div class="kpi-val">${state.profiles.length} Profil</div></div>
+          <div class="card"><div class="kpi-label">Ukuran LocalStorage</div><div class="kpi-val">${(bytes / 1024).toFixed(1)} KB</div></div>
+          <div class="card"><div class="kpi-label">Format Workbook Excel</div><div class="kpi-val tone-positive">11 Tab Sheet</div></div>
+        </div>
+        <div class="card">
+          <h2>Ekspor & Impor Workbook Excel (.xlsx)</h2>
+          <p class="subtitle" style="margin-bottom:14px;">File Excel berisi 11 tab terstruktur: Profil_Ringkasan, 01_CSR, 02_K3_TSIR, 03_Pelatihan, 04_Kinerja_Sosial, 05_Energi_GJ, 06_Lingkungan, 07_Pemasaran, 08_Supply_Chain, 09_Sertifikasi, dan 10_Asosiasi.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="exportActiveToExcel()">Simpan Data Profil Aktif ke Excel (.xlsx)</button>
+            <label class="btn btn-secondary" style="cursor:pointer;">Muat File Excel (.xlsx) ke LocalStorage<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelImport(event)" /></label>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const d = getData();
+      document.getElementById('sidebarProfileName').textContent = d.company.namaPerusahaan;
+      const activeNav = NAV_ITEMS.find((n) => n.id === activeSection) || NAV_ITEMS[0];
+      document.getElementById('topbarSectionTitle').textContent = `${d.company.namaPerusahaan} / ${activeNav.label}`;
+
+      document.getElementById('navList').innerHTML = NAV_ITEMS.map((item) => `
+        <button type="button" class="nav-item ${item.id === activeSection ? 'active' : ''}" onclick="setSection('${item.id}')">
+          <span>${escapeHtml(item.label)}</span>
+        </button>
+      `).join('');
+
+      document.getElementById('yearSwitch').innerHTML = YEARS.map((y) => `
+        <button type="button" class="year-btn ${y === selectedYear ? 'active' : ''}" onclick="setYear(${y})">${y}</button>
+      `).join('');
+
+      const bannerHtml = statusBanner
+        ? `<div class="banner ${statusBanner.tone === 'ok' ? 'banner-ok' : 'banner-warn'}">${escapeHtml(statusBanner.text)}</div>`
+        : '';
+
+      document.getElementById('mainContent').innerHTML = bannerHtml + renderSection();
+      statusBanner = null;
+    }
+
+    render();
+  </script>
+</body>
+</html>
